@@ -643,9 +643,6 @@ Compilation flags:
    
 */
 
-#define W64   	(IBMPC OR ALPHA OR SGI)		   /* For 64-bit version. Faster than
-					      32-bit version if available. */
-
 #if IBMPC
  #define REGISTER			   /* Omit register declaration on PC */
 #else
@@ -714,9 +711,9 @@ typedef uint16_t USHORT;  /* Assume 16 bits - no longer required */
 typedef unsigned int   UINT;	/* Assumed to be (at least) 32 bits */  	
 typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 
-#define WLEN  (8*sizeof(ULONG))	/* Bits in a long word, should be 32 or 64 */
+#define WLEN  (64)	/* Bits in a long word, should be 32 or 64 */
 #define WLENM (WLEN-1)		/* Ditto less 1, i.e. 31 or 63 */
-#define WD    (W64 + 5)		/* 5 or 6, so WLEN = 2^WD */
+#define WD    (6)		/* 5 or 6, so WLEN = 2^WD */
 
 	
 #define	NEXTRA 10		/* Do up to NEXTRA GCD computations for
@@ -1274,8 +1271,6 @@ ULONG *a;
   a[0] = 2L;			/* 0...010 represents x */
   }
 
-#if W64
-
 void interlvf(a, b, r)
 
 /* 64-bit version of interleave. Loop index runs up.
@@ -1435,165 +1430,7 @@ int r;
     b[2*j]   = t | (v << 1);
     }
   }
-
   
-
-#else
-
-void interlvf(a, b, r)
-
-/* 32-bit interleave. Loop index runs up.
-
-   If bits 0, 2, 4, ... , r-3, r-1, 1, 3, 5, ..., r-4, r-2 in a,
-   moves them to b in correct order.
-
-   Work is about (1.load + 1.store + 26.ops)r/WLEN.
-
-   RPB, 20000906 */
-
-ULONG *a, *b;
-int r;
-
-  {
-  REGISTER int j, s1, s2, q4;
-  REGISTER ULONG t, u, v, w, next1, next2, old, new;
-  REGISTER ULONG c1, c2, c3, c4, c5;
-  int alpha;
-  
-  c1 = 0x0000FFFFL;			/* Some 32-bit constants */
-  c2 = 0x00FF00FFL;
-  c3 = 0x0F0F0F0FL;
-  c4 = 0x33333333L;
-  c5 = 0x22222222L;
-  
-  alpha = r >> 1;			/* alpha = (r-1)/2 */
-  q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
-  s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
-  s2 = WLENM - s1;
- 
-  next1 = a[0];  
-  old = a[q4];
-  new = a[q4+1];
-  
-  for (j = 0; j LE q4; j++) {	
-
-    next2 = (old >> s1) | ((new << 1) << s2); /* Can't combine left shifts
-    						 in the case s1 EQ 0 */
-
-    u = next1>>16;			/* High order 16 bits low part of a */
-    w = next2>>16;			/* Ditto of high part of a */
-    t = next1 & c1;			/* Low order 16 bits low part of a */
-    v = next2 & c1;			/* Ditto of high part of a */
-
-    next1 = a[j+1];
-    old   = new;
-    new   = a[j+q4+2];
-
-    u = (u | u<<8) & c2;	
-    t = (t | t<<8) & c2;	
-
-    w = (w | w<<8) & c2;	
-    v = (v | v<<8) & c2;	
-
-    u = (u | u<<4) & c3;
-    t = (t | t<<4) & c3;
-    w = (w | w<<4) & c3;
-    v = (v | v<<4) & c3;
-
-    u = (u | u<<2) & c4;
-    t = (t | t<<2) & c4;
-    w = (w | w<<2) & c4;
-    v = (v | v<<2) & c4;
-
-    u += u & c5;
-    t += t & c5;
-    w += w & c5;
-    v += v & c5;
-    
-    b[2*j+1] = u | (w << 1);
-    b[2*j]   = t | (v << 1);
-    }
-  }
-  
-void interlvr(a, b, r)
-
-/* 32-bit interleave. Loop index runs down (compare interlvf).
-
-   If bits 0, 2, 4, ... , r-3, r-1, 1, 3, 5, ..., r-4, r-2 in a,
-   moves them to b in correct order.
-      
-   Work is about (1.load + 1.store + 26.ops)r/WLEN.
-
-   Because of a loop optimisation, it should be valid to access a[-1]. 
-   
-   RPB, 20000906 */
-
-ULONG *a, *b;
-int r;
-
-  {
-  REGISTER int j, s1, s2;
-  REGISTER ULONG t, u, v, w, next1, next2, old, new;
-  REGISTER ULONG c1, c2, c3, c4, c5;
-  int q4, alpha;
-  
-  c1 = 0x0000FFFFL;			/* Some 32-bit constants */
-  c2 = 0x00FF00FFL;
-  c3 = 0x0F0F0F0FL;
-  c4 = 0x33333333L;
-  c5 = 0x22222222L;
-  
-  alpha = r >> 1;			/* alpha = (r-1)/2 */
-  q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
-  s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
-  s2 = WLENM - s1; 			/* In [0,WLEN) */
- 
-  next1 = a[q4];  
-  old = a[2*q4+1];
-  new = a[2*q4];
-  
-  for (j = q4; j GE 0; j--) {	
-
-    next2 = (new >> s1) | ((old << 1) << s2); /* Can't combine left shifts
-	     					 in the case s1 EQ 0 */
-     				
-    u = next1>>16;			/* High order 16 bits low part of a */
-    w = next2>>16;			/* Ditto of high part of a */
-    t = next1 & c1;			/* Low order 16 bits low part of a */
-    v = next2 & c1;			/* Ditto of high part of a */
-
-    next1 = a[j-1];
-    old   = new;
-    new   = a[j+q4-1];
-
-    u = (u | u<<8) & c2;	
-    t = (t | t<<8) & c2;	
-
-    w = (w | w<<8) & c2;	
-    v = (v | v<<8) & c2;	
-
-    u = (u | u<<4) & c3;
-    t = (t | t<<4) & c3;
-    w = (w | w<<4) & c3;
-    v = (v | v<<4) & c3;
-
-    u = (u | u<<2) & c4;
-    t = (t | t<<2) & c4;
-    w = (w | w<<2) & c4;
-    v = (v | v<<2) & c4;
-
-    u += u & c5;
-    t += t & c5;
-    w += w & c5;
-    v += v & c5;
-    
-    b[2*j+1] = u | (w << 1);
-    b[2*j]   = t | (v << 1);
-    }
-  }
-
-#endif
-
 FILE *myfopen(fname, flag)
 
 /* Attempts to open file fname. If not successful at first, keeps trying
@@ -1670,9 +1507,6 @@ double *CPUest;
     /* Changed 2 to 6 in version 3.15 to avoid out of bounds problem 
        (sizeah also increased by 4 before call to fastmem) */
     a0 += 6;		/* For optimisation in interlvr, may access a[-1] */	
-#if (IBMPC AND NOT W64)
-    if ((((UINT)a0) & 4) NE 0) a0 += 1;	/* Align if necessary */
-#endif
     a1 = a0 + sizeah;
     a = a1;		/* Will cycle through a1, a0 */
 
@@ -1798,7 +1632,6 @@ char *argv[];
     printf("others to FALSE, and recompile\n");
     return(ERROR);
     }
-  if (W64)   printf("W64, ");
   if (UNROLL) 
     printf("UNROLL, ");
   else if (ULTRA) 
@@ -1817,23 +1650,6 @@ char *argv[];
 
   printf("\n");
       
-#if W64
-
-  if (sizeof(ULONG) NE 8) {	/* This is a 64-bit version */
-    printf("sizeof(ULONG) %d, should be 8\n", (int)sizeof(ULONG));
-    printf("recompile with 64-bit options\n");
-    return(ERROR);
-    }
-
-#else
-
-  if (sizeof(ULONG) NE 4) {	/* This is a 32-bit version */
-    printf("sizeof(ULONG) %d, should be 4\n", (int)sizeof(ULONG));
-    printf("recompile with 32-bit options\n");
-    return(ERROR);
-    }
-#endif
-
   CPUtime = clockd(&cstart, TRUE); 		/* Initialise timer */
   slept = 0;
   a0 = NULL;
@@ -2026,9 +1842,6 @@ char *argv[];
       			
       /* Following is to align a0, a1 on 8-byte boundary */
 
-#if (IBMPC AND NOT W64)
-      if ((((UINT)a0) & 4) NE 0) a0 += 1;	/* Align if necessary */
-#endif
       a1 = a0 + sizeah;
       a = a1;		/* Will cycle through a1, a0 */
       }
@@ -2214,11 +2027,9 @@ char *argv[];
 	  }
         }
       else {
-#if W64
+
 	temp = (UINT)((a[0]<<32)>>32);
-#else      
-        temp = (UINT)a[0];
-#endif
+
         hex8(temp, str8);
 #if VERBOSE
         printf("Not irreducible/primitive, low word %s (hex)\n", str8); 
