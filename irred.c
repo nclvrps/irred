@@ -213,7 +213,6 @@ References:
 #define ULTRA (SPARC OR SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
 #define UNROLL TRUE		/* Best to set FALSE on Sun-Blade 1000,
 				   but TRUE on Ultra-80 */
-#define CPUINFO	TRUE  		/* If TRUE and IBMPC, give detailed CPU info */
 
 #if BOOTH
 
@@ -644,17 +643,6 @@ Compilation flags:
    
 */
 
-#define ASM	FALSE		   /* Use external assembler routines.
-					      At present these are only
-					      available for the IBM PC and 
-					      use MMX instructions. In this 
-					      case we estimate the inner loops
-					      take 0.58*r^2 instructions and 
-					      at least 0.23*r^2 cycles.
-					      For problems which fit in the
-					      L1 cache, the observed time
-					      is about 0.33*r^2 cycles. */
-
 #define W64   	(IBMPC OR ALPHA OR SGI)		   /* For 64-bit version. Faster than
 					      32-bit version if available. */
 
@@ -664,9 +652,7 @@ Compilation flags:
  #define REGISTER register		   /* Include it on other machines */
 #endif
 
-#if (ASM AND IBMPC)
- #define LIM 256			   /* Lower bound on s, r-s */
-#elif UNROLL
+#if UNROLL
   #define LIM (10*WLEN)
 #elif ULTRA
  #define LIM (6*WLEN)
@@ -1006,13 +992,7 @@ ULONG *a;
   return(TRUE);
   }
   
-#if (ASM AND IBMPC)
-
-extern void cpuinfo(int flag, int* result);
-				/* Returns info from cpuid instruction */
-extern BOOLEAN checkmmx();	/* Returns TRUE if MMX instruction available */
-
-#elif UNROLL
+#if UNROLL
 
 void reducer(a, b, kt, shift, prev)
 
@@ -1149,47 +1129,6 @@ ULONG *prev;		/* Previous -> last value of new */
 
 #endif
 
-#if (ASM AND IBMPC)
-
-extern void reducer(ULONG* a, ULONG* b, int kt, int shift, ULONG* prev);
-				/* non-MMX version */
-
-extern void reducemr(ULONG* a, ULONG* b, int kt, int shift, ULONG* prev);
-extern void reducemx(ULONG* a, ULONG* b, int kt, int shift, ULONG* prev);
-				/* MMX versions */
-
-void reduceml(a, b, kt, shift, prev)
-
-/* Interface to reducer/reducemr/reducemx. Ensures proper data alignment. */
-
-ULONG *a, *b;
-int kt, shift;
-ULONG *prev;
-
-  {
-  if (kt LT SMALLKT)			
-      reducer(a, b, kt, shift, prev);	/* Faster in small cases */
-      
-  /* Tests for the four cases below are (1279, 418), (3217, 576),
-     (2281, 1029) and (23209, 9739). For testing, reduce SMALLKT to 1. */ 
-
-  else if (((ULONG)b & 4L) EQ 0) {	/* Alignment of b is OK here */
-    if (((ULONG)a & 4L) EQ 0)
-      reducemr(a, b, kt, shift, prev);	/* Alignment of a is OK here */
-    else
-      reducemx(a, b, kt, shift, prev);	/* Here a is mis-aligned */
-    }
-  else {				/* Here b is mis-aligned */
-    if (((ULONG)a & 4L) EQ 0) 
-      reducemx(a+1, b+1, kt-1, shift, prev);	/* a, b+1 aligned */
-    else
-      reducemr(a+1, b+1, kt-1, shift, prev);	/* a+1, b+1 aligned */
-    reducer (a, b, 0, shift, prev);	/* Final iteration */
-    }
-  }
-
-#endif
-
 void reducep(a)	
 
 /* Reduces implicit square of polynomial a of degree < r "in place"
@@ -1237,24 +1176,15 @@ ULONG *a;
   
   if (deltaq EQ 0) {		/* Special case deltaqc EQ WLEN */
     
-#if (ASM AND IBMPC)
-    reduceml(a+q4+1, a+q4+1-deltaw, q1-q4-1, deltaq, &new);
-#else
     for (j = q1; j > q4; j--)	/* C reducer does not work here */
       a[j-deltaw] ^= a[j];
-#endif
     a[q4-deltaw] ^= a[q4] & mask2;
     }
 
   else {			/* Usual case, deltaqc LT WLEN */
 
-#if (ASM AND IBMPC)    
-				/* Could call reduceml or reducer */
-
-    reduceml (a+q4+1, a+q4+1-deltaw, q1-q4-1, deltaq, &new);
-#else    
     reducer (a+q4+1, a+q4+1-deltaw, q1-q4-1, deltaq, &new);
-#endif
+
     /* The last two iterations are special as need to mask some bits */
 
     temp = new;
@@ -1344,16 +1274,7 @@ ULONG *a;
   a[0] = 2L;			/* 0...010 represents x */
   }
 
-#if (ASM AND IBMPC)
-
-/* Here use assembler versions of interlv which use the MMX
-   instructions (available on most Pentiums and above, but not 486 machines).
-*/
-
-extern void interlvf(ULONG* a, ULONG* b, int r);
-extern void interlvr(ULONG* a, ULONG* b, int r);
-
-#elif W64
+#if W64
 
 void interlvf(a, b, r)
 
@@ -1856,11 +1777,6 @@ char *argv[];
   int slow, shigh;
   BOOLEAN done, found, g, swan, sievemore;
   
-#if (ASM AND IBMPC)
-  int cpumax;
-  int cpudata[5];		/* For results of cpuinfo */
-#endif
-
   printf("\nThis is irred version 3.15\n");	  /* Date 20030328 */
   
 #if GNU
@@ -1887,9 +1803,6 @@ char *argv[];
     printf("UNROLL, ");
   else if (ULTRA) 
     printf("ULTRA, ");
-  if (ASM AND IBMPC) {
-    printf("ASM, ");
-    }
   if (MAXUSERS GE 0) 
     printf("MAXUSERS = %d, ", MAXUSERS);
   else if (MAXUSERS EQ -2)
@@ -1901,38 +1814,6 @@ char *argv[];
     printf("DYNAMIC\n");
   else
     printf("NEXTRA = %d\n", NEXTRA);
-
-#if (ASM AND IBMPC)
-  cpuinfo (0, cpudata);
-  cpumax = cpudata[0];
-  cpudata[4] = 0;
-
-  #if CPUINFO
-    printf("\nCPU info: %12s\n", (char *)(cpudata+1));
-    for (j = 1; j LE cpumax; j++) {
-      cpuinfo(j, cpudata);
-      printf("%8x %x %8x %x\n",
-        cpudata[0], cpudata[1], cpudata[2], cpudata[3]);
-      }
-  #endif
-
-  cpuinfo(1, cpudata);
-  if (cpudata[0] EQ 0x633)
-    printf("P-II, possibly booth51-55\n");
-  if (cpudata[0] EQ 0x634)
-    printf("P-II, possibly portland\n");
-  else if (cpudata[0] EQ 0x642)
-    printf("P-II or AMD, possibly (old) bsp or lamaxe\n");
-  else if (cpudata[0] EQ 0x673)
-    printf("P-III, possibly booth1-35\n");
-  else if (cpudata[0] EQ 0x683) {
-    if (cpudata[2] EQ 0x383f9ff)   printf("P-III, possibly bsp\n");
-    else           /* 0x383fbff */ printf("P-III, possibly tosca\n");
-    }
-  cpuinfo(2, cpudata);
-  if ((cpudata[2] & 0xF) EQ 2) printf("256KB L2 cache\n");
-  if ((cpudata[2] & 0xF) EQ 3) printf("512KB L2 cache\n");
-#endif
 
   printf("\n");
       
@@ -1964,14 +1845,6 @@ char *argv[];
   for (j = NMAX; j GE 0; j--) 
     sieved[j] = 0;
   sievemnz = 0;  
-
-#if (ASM AND IBMPC)
-  if (NOT checkmmx()) {
-    printf ("Sorry, your PC can not execute MMX instructions\n");
-    printf ("Set ASM to FALSE and recompile\n");
-    return(ERROR);
-    }
-#endif   
 
   if (argc GT 7)			/* Load tolerance while sleeping */
     sscanf(argv[7], "%f", &loadtols);	
