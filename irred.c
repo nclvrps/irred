@@ -54,8 +54,7 @@ Restrictions, Assumptions and Limitations:
    can not complete the primitivity test without factoring 2^r-1.)
 
 Usage:
-   	  irred restart-file log-file time-limit skip-file maxusers 
-   	  	loadtolr loadtols
+   	  irred restart-file log-file time-limit skip-file
    	  					(all arguments optional)
 Arguments:
 
@@ -617,11 +616,7 @@ Compilation flags:
 /* Some constants */
 
 #define TIMEOUT 10		/* Seconds to timeout when opening files */
-#define SLEEPU  10		/* Seconds to sleep if too many users */
-#define SLEEPL  1		/* Seconds to sleep if load too high */
 #define CPUTOL 0.01		/* Times less than CPUTOL sec are negligible */
-#define SMALLKT 400		/* Tolerance for small kt in reduceml
-				   determined empirically on a P-II */
 #if (IBMPC AND LINUX)				
 
   #define FASTTRY 16		/* Number of a0 to try in fastmem.
