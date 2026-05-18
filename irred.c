@@ -164,11 +164,7 @@ References:
 #define OR ||			/* Logical OR  */
 #define NOT !			/* Logical NOT */
 
-/* BOOTH, VERBOSE, CONTINUE, GNU, MAXUSERS determine program behaviour */
-
-#define BOOTH FALSE		/* Shortcut for my default machine.
-				   Set TRUE to be nice to other users on
-				   IBM PCs running Solaris, FALSE otherwise. */
+/* VERBOSE, CONTINUE, GNU, MAXUSERS determine program behaviour */
 
 #define VERBOSE TRUE		/* If true give more informative output */
 
@@ -177,8 +173,6 @@ References:
 
 #define GNU TRUE		/* Determines if copyright notice is printed
 				   (but the program is copyright anyway) */
-
-#if (NOT BOOTH)			/* Change following four defines as required */
 
 /* ===>>> Set exactly one of the following machine types to TRUE <<<=== */
 
@@ -208,22 +202,10 @@ References:
 
   #define SGI FALSE   /* 64-bit SGI R10000. Compile with cc -64 -Ofast */
 
-#endif	
 
 #define ULTRA (SPARC OR SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
 #define UNROLL TRUE		/* Best to set FALSE on Sun-Blade 1000,
 				   but TRUE on Ultra-80 */
-
-#if BOOTH
-
-  #define IBMPC TRUE		/* Don't change this or next three lines */
-  #define SPARC FALSE		/* Don't change */
-  #define SGI FALSE		/* Don't change */
-  #define ALPHA FALSE		/* Don't change */
-
-  #define MAXUSERS -3		/* Recommend 0 or -2 here, -3 for testing */
-
-#else
 
   #define MAXUSERS -3		/* If MAXUSERS GE 0,  sleep while number of
 				   users exceeds MAXUSERS.
@@ -242,21 +224,15 @@ References:
 				   The default may be overridden
 				   by the fifth command-line argument */
 
-#endif
-
 #define LOADTOLR 1.2		/* Some value greater than the number of
 				   processors (assumed to be one here) */
 #define LOADTOLS 0.9		/* Some value less than LOADTOLR */
 
 /* Following are only relevant on IBM PCs */
 
-#if BOOTH
-  #define LINUX FALSE
-#else
   #define LINUX TRUE		/* Set TRUE if running under Linux,
 				   FALSE otherwise. Relevant to choice
 				   of FASTTRY (see below). */
-#endif
 
 /*
 
@@ -1622,7 +1598,6 @@ char *argv[];
 #endif
 
   printf("Options ");				  /* Print relevant options */
-  if (BOOTH) printf("BOOTH, ");
   if (IBMPC) printf("IBMPC, ");
   if (ALPHA) printf("ALPHA, ");
   if (SPARC) printf("SPARC, ");
