@@ -153,6 +153,9 @@ References:
 
 #include <stdio.h>
 #include <stdlib.h>		/* For malloc */
+#include <stdint.h>
+#include <stdbool.h>
+#include <unistd.h>     /* For sleep */
 #include <time.h>   		/* For clock */
 
 #define TRUE 1
@@ -179,7 +182,7 @@ References:
 
 /* ===>>> Set exactly one of the following machine types to TRUE <<<=== */
 
-  #define IBMPC FALSE /* 32-bit CISC, little-endian, e.g. Pentium.
+  #define IBMPC TRUE /* 32-bit CISC, little-endian, e.g. Pentium.
 
 		      With gcc 2.95.2, compile irred.c with
 		      gcc -O1 -fomit-frame-pointer -funroll-loops
@@ -193,7 +196,7 @@ References:
 		      assembled to give relocatables irred.o
 	 	      */
 
-  #define SPARC TRUE  /* 32-bit RISC, e.g. Old (32-bit) Sun Sparc. 
+  #define SPARC FALSE  /* 32-bit RISC, e.g. Old (32-bit) Sun Sparc. 
   			 Compile with gcc -O6 or (better) cc -Ofast */
 
   #define ALPHA FALSE /* 64-bit RISC, e.g. DEC Alpha. Compile with
@@ -641,7 +644,7 @@ Compilation flags:
    
 */
 
-#define ASM	TRUE			   /* Use external assembler routines.
+#define ASM	FALSE		   /* Use external assembler routines.
 					      At present these are only
 					      available for the IBM PC and 
 					      use MMX instructions. In this 
@@ -652,7 +655,7 @@ Compilation flags:
 					      L1 cache, the observed time
 					      is about 0.33*r^2 cycles. */
 
-#define W64   	(ALPHA OR SGI)		   /* For 64-bit version. Faster than
+#define W64   	(IBMPC OR ALPHA OR SGI)		   /* For 64-bit version. Faster than
 					      32-bit version if available. */
 
 #if IBMPC
@@ -719,11 +722,11 @@ Compilation flags:
 
 /* Type definitions */
 
-typedef char BOOLEAN;
-typedef unsigned char  UCHAR;	/* Assumed to be 8 bits */
-typedef unsigned short USHORT;  /* Assume 16 bits - no longer required */
+typedef _Bool BOOLEAN;
+typedef uint8_t  UCHAR;	/* Assumed to be 8 bits */
+typedef uint16_t USHORT;  /* Assume 16 bits - no longer required */
 typedef unsigned int   UINT;	/* Assumed to be (at least) 32 bits */  	
-typedef unsigned long  ULONG;	/* Should be 32 or 64 bits */
+typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 
 #define WLEN  (8*sizeof(ULONG))	/* Bits in a long word, should be 32 or 64 */
 #define WLENM (WLEN-1)		/* Ditto less 1, i.e. 31 or 63 */
@@ -1679,7 +1682,7 @@ FILE *myfopen(fname, flag)
 char *fname, *flag;
 
   {
-  FILE *fp, *fopen();
+  FILE *fp;
   clock_t openstart;
   double time;
   time = clockd(&openstart, TRUE);	/* Independent timer here */
@@ -1746,7 +1749,7 @@ double *CPUest;
     /* Changed 2 to 6 in version 3.15 to avoid out of bounds problem 
        (sizeah also increased by 4 before call to fastmem) */
     a0 += 6;		/* For optimisation in interlvr, may access a[-1] */	
-#if IBMPC
+#if (IBMPC AND NOT W64)
     if ((((UINT)a0) & 4) NE 0) a0 += 1;	/* Align if necessary */
 #endif
     a1 = a0 + sizeah;
@@ -2150,7 +2153,7 @@ char *argv[];
       			
       /* Following is to align a0, a1 on 8-byte boundary */
 
-#if (IBMPC)
+#if (IBMPC AND NOT W64)
       if ((((UINT)a0) & 4) NE 0) a0 += 1;	/* Align if necessary */
 #endif
       a1 = a0 + sizeah;
