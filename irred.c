@@ -164,7 +164,7 @@ References:
 #define OR ||			/* Logical OR  */
 #define NOT !			/* Logical NOT */
 
-/* VERBOSE, CONTINUE, GNU, MAXUSERS determine program behaviour */
+/* VERBOSE, CONTINUE, GNU determine program behaviour */
 
 #define VERBOSE TRUE		/* If true give more informative output */
 
@@ -206,27 +206,6 @@ References:
 #define ULTRA (SPARC OR SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
 #define UNROLL TRUE		/* Best to set FALSE on Sun-Blade 1000,
 				   but TRUE on Ultra-80 */
-
-  #define MAXUSERS -3		/* If MAXUSERS GE 0,  sleep while number of
-				   users exceeds MAXUSERS.
-
-			           If MAXUSERS EQ -1, sleep when load
-			             exceeds LOADTOLR and until load
-			             decreases below LOADTOLS.
-
-				   If MAXUSERS EQ -2, sleep while number
-				   of users exceeds zero OR load exceeds
-				   LOADTOLR (i.e. conditions 0 OR -1).
-
-  				   If MAXUSERS LE -3, never sleep
-  				   (this is the recommended default).
-
-				   The default may be overridden
-				   by the fifth command-line argument */
-
-#define LOADTOLR 1.2		/* Some value greater than the number of
-				   processors (assumed to be one here) */
-#define LOADTOLS 0.9		/* Some value less than LOADTOLR */
 
 /* Following are only relevant on IBM PCs */
 
@@ -726,19 +705,10 @@ clock_t cstart;
 
 	/* 32 bits should suffice for these counters */
 
-UINT slept = 0;				/* Counts seconds slept */
 UINT syscalls = 0;			/* Counts calls to system/sleep */
 UINT clockcalls = 0;			/* Counts calls to clock */
 UINT space = 0;				/* Counts bytes allocated by malloc */
-UINT userkt0 = 0;			/* Counts calls to userkt */
-UINT userkt1 = 0;			/* Cumulative user count */
 
-int maxusers = MAXUSERS;		/* Default may be overridden by
-  				           fifth command-line argument */
-float loadtolr = LOADTOLR;		/* Default may be overrridden by
-					   sixth command-line argument */
-float loadtols = LOADTOLS;		/* Default may be overridden by
-					   seventh command-line argument */
 /* Routines start here */
 
 double clockd(starta, first)
@@ -784,168 +754,6 @@ int size;
   for (j = 0; j < size; j++) ptr[j] = (char)0;
 #endif
   return(ptr);
-  }
-
-UINT mysleep(n)
-
-UINT n;
-
-/* Sleeps for (up to) n seconds and returns the time slept.
-   Assume sleep(n) returns (n - (seconds slept)). */
-
-  {
-  syscalls++;			/* Count call to sleep as a system call */
-  return (UINT)(n - sleep(n));
-  }
-
-UINT userkt()
-
-/* Returns the number of interactive users using call to uptime,
-   and updates some counters. Assumes the number of users is < 256.
-
-   Assumes that uptime returns something like
-
-   12:11pm  up 1 day, 50 min,  5 users,  load average: 0.31, 0.80, 0.59
-                               ^                       ^^^^  ^^^^  ^^^^
-   (awk field)                 NF-6                    NF-2  NF-1   NF
-
-   To avoid using a temporary file (as in version 3.00) we return the
-   result from uptime|awk using exit. Note that exit shifts its return
-   value (mod 256) left 8, so we have to shift it right 8. */
-
-  {
-  int rv;
-  syscalls++;
-  rv = system("exit `uptime|awk '{print $(NF-6)}'`") >> 8;
-  userkt0++;
-  userkt1 += rv;
-  return (UINT)rv;
-  }
-
-UINT checkusers(userstol)
-
-int userstol;
-
-/* Sleeps while number of users exceeds userstol,
-   returns the total number of seconds slept */
-
-  {
-  UINT slept;
-  slept = 0;
-  while (userkt() > userstol)
-    slept += mysleep(SLEEPU);		/* Sleep and increment counter */
-  return slept;
-  }
-
-BOOLEAN sysload(tol)			/* BOOLEAN since version 3.02 */
-float tol;
-
-/* Returns TRUE if (system load) > tol, FALSE otherwise,
-   using a call to uptime, and increments the syscalls counter.
-
-   Assumes that uptime returns something like
-
-   12:11pm  up 1 day, 50 min,  5 users,  load average: 0.31, 0.80, 0.59
-                                                       ^^^^  ^^^^  ^^^^
-   (awk field)                                         NF-2  NF-1   NF
-
-   where the last three fields are the load averages. We use the left-most
-   load average (i.e. the average over the last 60 seconds).
-
-   We use a variant of the method used in userkt.
-   awk processes the output of uptime. We use sprintf
-   to encode tol in the string passed to sh via a system call. 
-   In awk's notation, $(NF-2) is something like "0.31,". 
-   We remove the comma using substr and compare with tol. 
-   The Boolean result is returned by exit.
-   exit shifts the return value (mod 256) left 8 so we shift right 8.
-   
-   Probably more efficient (but system-dependent) methods: 
-     under Linux, read /proc/loadavg;
-     under Solaris, call getloadavg.
-*/
-  {
-  char str[MC];				/* 95 is enough */
-
-#if (MC < 95)
-  printf("Increase MC from %d to at least 95\n", MC);
-  exit(ERROR);
-#endif  
-
-  sprintf(str, "%s%1.2f%s", 
-    "exit `uptime|awk '{if (substr($(NF-2),0,length($(NF-2))-1) > ", tol, 
-			  ") {print 1} else {print 0}}'`");
-  syscalls++;
-  return (BOOLEAN)(system(str) >> 8);
- }
-
-UINT checkload()
-
-/* Sleeps if average system load exceeds loadtolr (including this process),
-   wakes after load diminishes to loadtols. One a single-processor machine 
-   the constants should satisfy 0 < loadtols < 1 < loadtolr.
-
-   Returns the total number of seconds slept */
-
-  {
-  UINT slept;
-  slept = 0;
-  if (sysload(loadtolr)) {      /* Running tolerance loadtolr here */
-    while (sysload(loadtols)) { /* Sleeping tolerance loadtols here */
-      slept += mysleep(SLEEPL);
-      }
-    }
-  return slept;
-  }
-
-BOOLEAN sysload2(tol)
-float tol;
-
-/* Slight variant on sysload. 
-   Returns TRUE if (userkt > 0) OR ((system load) > tol), FALSE otherwise,
-   using a call to uptime, and increments the syscalls counter.
-   Equivalent to
-   
-     (userkt() GT 0) OR sysload(tol)
-
-   but more efficient.
-*/
-
-  {
-  char str[MC];				/* 127 is enough */
-
-#if (MC < 127)
-  printf("Increase MC from %d to at least 127\n", MC);
-  exit(ERROR);
-#endif  
-
-  sprintf(str, "%s%s%1.2f%s", 
-    "exit `uptime|awk '{if ($(NF-6) > 0) {print 1}",
-    " else if (substr($(NF-2),0,length($(NF-2))-1) > ", tol, 
-			  ") {print 1} else {print 0}}'`");
-  syscalls++;
-  return (BOOLEAN)(system(str) >> 8);
- }
-
-UINT checkload2()
-
-/* Sleeps if any interactive users OR 
-   average system load exceeds loadtolr (including this process),
-   wakes after load diminishes to loadtols and no interactive users. 
-   One a single-processor machine the constants should satisfy 
-   0 < loadtols < 1 < loadtolr.
-
-   Returns the total number of seconds slept */
-
-  {
-  UINT slept;
-  slept = 0;
-  if (sysload2(loadtolr)) {      /* Running tolerance loadtolr here */
-    while (sysload2(loadtols)) { /* Sleeping tolerance loadtols here */
-      slept += mysleep(SLEEPU);  /* Assume SLEEPL LE SLEEPU */	 
-      }
-    }
-  return slept;
   }
 
 BOOLEAN comparex(a)
@@ -1191,13 +999,6 @@ int np, nq;
       CPUtime += clockd(&cstart, FALSE);
       					/* Avoid timer overflow by calling */
       wkt = 0x40000000; 		/* clockd occasionally */
-
-      if (maxusers EQ -2) 		/* Check load and users here */
-	slept += checkload2();
-      else if (maxusers EQ -1)		/* Check load here */
-        slept += checkload();		/* Sleep while load high */
-      else if (maxusers GE 0)		/* Check users here */
-        slept += checkusers(maxusers);  /* Sleep while users high */
       } 
     if (np LT nq) { 			/* p <-> q etc */
       k = np; np = nq; nq = k;
@@ -1611,12 +1412,6 @@ char *argv[];
     printf("UNROLL, ");
   else if (ULTRA) 
     printf("ULTRA, ");
-  if (MAXUSERS GE 0) 
-    printf("MAXUSERS = %d, ", MAXUSERS);
-  else if (MAXUSERS EQ -2)
-    printf("MAXUSERS = 0, ");  
-  if ((MAXUSERS EQ -1) OR (MAXUSERS EQ -2))
-    printf("LOADTOL = {%1.2f, %1.2f}, ", LOADTOLS, LOADTOLR);  
   if (FASTTRY GT 0) printf("FASTTRY = %d, ", FASTTRY);
   if (DYNAMIC) 
     printf("DYNAMIC\n");
@@ -1626,7 +1421,6 @@ char *argv[];
   printf("\n");
       
   CPUtime = clockd(&cstart, TRUE); 		/* Initialise timer */
-  slept = 0;
   a0 = NULL;
   skiplist = NULL;
   found = FALSE;
@@ -1636,27 +1430,6 @@ char *argv[];
   for (j = NMAX; j GE 0; j--) 
     sieved[j] = 0;
   sievemnz = 0;  
-
-  if (argc GT 7)			/* Load tolerance while sleeping */
-    sscanf(argv[7], "%f", &loadtols);	
-
-  if (argc GT 6) {			/* Load tolerance while running */
-    sscanf(argv[6], "%f", &loadtolr);
-    if (loadtols LT 0.0) loadtols = 0.0;	   /* Ensure that new values */
-    if (loadtolr LT loadtols) loadtolr = loadtols; /* are reasonable */ 
-    }
-    
-  if (argc GT 5) {			/* Max number of interactive users */
-    if (sscanf(argv[5], "%d", &maxusers) GT 0) {	
-      if (maxusers GE 0)
-        printf("Will sleep while more than %d interactive users\n", maxusers);
-      if (maxusers EQ -2)
-        printf("Will sleep while any interactive users\n");
-      if ((maxusers EQ -1) OR (maxusers EQ -2))
-        printf("Will sleep if load exceeds %1.2f until down to %1.2f\n", 
-          loadtolr, loadtols);
-      }      
-    }
 
   if (argc GT 4) {				/* Process skip file */	
     if ((fp = fopen(argv[4], "r")) EQ NULL)
@@ -1893,15 +1666,6 @@ char *argv[];
         CPUtime += clockd(&cstart, FALSE);	/* calling clockd sometimes */
         }
         
-      if (sievemore OR ((k & 2047L) EQ 0)) { /* Check every few seconds  */
-	if (maxusers EQ -2) 		     /* Check load and users here */
-	  slept += checkload2();
-	else if (maxusers EQ -1)	     /* Check load here */
-	  slept += checkload();		     /* Sleep while load high */
-	else if (maxusers GE 0)		     /* Check users here */
-	  slept += checkusers(maxusers);     /* Sleep while users high */
-        }
-        
       /* Phase 2 sieve: compute GCD(a(x)+x, trinomial) for small k */
 
         if (sievemore AND (k GE nm) AND (k LT (nm+NEXTRA)) AND (k LT (r-1))) {
@@ -2049,9 +1813,6 @@ char *argv[];
         if ((CPUtotal1 GT CPUTOL) AND (CPUtotal1 LT CPUtotal))
           printf("Overall %1.2f percent of time spent sieving\n", 
         	100.0*CPUtotal1/CPUtotal); 
-        if (slept GT CPUTOL)
-          printf("Slept for a total of %d seconds, %1.2f percent of time\n",
-            slept, (double)100*(double)slept/((double)slept+CPUtotal));
 	printf("Sieving: success %d, failure %d, ", kt2, kt1);
 	printf("rate %1.2f percent\n", 100.0*(double)kt1/(kt1+kt2));
 	for (j = 1; j LE sievemnz; j++) printf ("%d ", sieved[j]);
@@ -2086,8 +1847,6 @@ char *argv[];
   printf("Dynamic storage allocation %d bytes\n", space);
   printf("%d clock calls\n", clockcalls);
   if (syscalls GT 0) printf("%d system/sleep calls\n", syscalls);
-  if (userkt0 GT 0) printf("Mean number of users %1.2f\n",
-    (double)userkt1/(double)userkt0);
 #endif
   return(OK);				/* Normal exit */
   }
