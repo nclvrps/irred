@@ -233,9 +233,7 @@ References:
 #define GNU true		/* Determines if copyright notice is printed
 				   (but the program is copyright anyway) */
 
-  #define IBMPC true /* 32-bit CISC, little-endian, e.g. Pentium.
-
-		      With gcc 2.95.2, compile irred.c with
+		     /* With gcc 2.95.2, compile irred.c with
 		      gcc -O1 -fomit-frame-pointer -funroll-loops
 		      	-o irred irred.c [irred.o]
 
@@ -246,13 +244,6 @@ References:
 		      where the assembler routines (if any) have been
 		      assembled to give relocatables irred.o
 	 	      */
-
-/* Following are only relevant on IBM PCs */
-
-  #define LINUX true		/* Set true if running under Linux,
-				   false otherwise. Relevant to choice
-				   of FASTTRY (see below). */
-
 /*
 
 Comments on different versions:
@@ -646,18 +637,11 @@ Compilation flags:
 
 #define TIMEOUT 10		/* Seconds to timeout when opening files */
 #define CPUTOL 0.01		/* Times less than CPUTOL sec are negligible */
-#if (IBMPC && LINUX)				
 
-  #define FASTTRY 16		/* Number of a0 to try in fastmem.
-				   Set to 1 if trivial selection desired. */
-#else
+  /* Number of a0 to try in fastmem.
+     Set to 1 if trivial selection desired. */
 
-  #define FASTTRY 1		/* Selection of a0 only seems useful on IBM PC
-  				   running under Linux (not Solaris),
-  				   but in any case do one timing run to 
-  				   estimate non-sieving time and thus 
-  				   determine a good cutoff for sieving. */
-#endif
+  #define FASTTRY 1
 
 #define SMALLR  200000		/* Trivial selection if r < SMALLR */
 #define CPUTEST 1		/* Seconds for each trial in fastmem.
@@ -1177,7 +1161,6 @@ char *argv[];
 #endif
 
   printf("Options ");				  /* Print relevant options */
-  if (IBMPC) printf("IBMPC, ");
   if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
 
   printf("\n");
@@ -1307,12 +1290,10 @@ char *argv[];
     sizeah += sizeah & 1;		/* Round up to even values */
     sizep  += sizep  & 1;		/* to preserve 8-byte boundaries */					   		
 
-#if IBMPC
     sizeah = (((sizeah+7)>>3)<<3);	/* Make sizeah = 0 (mod 8)
     					   because 8 4-byte words per cache
     					   line on IBM PC (added v. 2.71)
     					   (does this help ?) */
-#endif
 
     if (a0 == NULL) {	/* Allocate space for a, b, p and q arrays */
 
