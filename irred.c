@@ -821,22 +821,21 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
   s2 = WLENM - s1;			/* In [0, WLEN) */
   
-  next1 = a[0];
-  old = a[q4];
-  new = a[q4+1];
-
   for (j = 0; j <= q4; j++) {
 
-    next2 = (old >> s1) | ((new << 1) << s2);	/* Beware case s2 == 63 */
+        uint64_t lo     = a[j];
+        uint64_t hi_raw = a[j + q4];
+        uint64_t hi_nxt = a[j + q4 + 1];
+    /*  Might have to special-case s1 == 0,
+        which occurs when r % 128 = 127,
+        and presumably set hi = 0 if s1 == 0 ?
+        However, this modified code seems to give
+        the same results as the original code.
+     */
+        uint64_t hi = (hi_raw >> s1) | ((hi_nxt << 1) << s2);
 
-    u = next1>>32;			/* High order 32 bits low part of a */
-    w = next2>>32;			/* Ditto high part of a */
-    t = next1 & c0;			/* Low order 32 bits low part of a */
-    v = next2 & c0;			/* Ditto high part of a */
-
-    next1 = a[j+1];
-    old   = new;
-    new   = a[j+q4+2];
+        uint64_t t = lo & c0,  u = lo >> 32;
+        uint64_t v = hi & c0,  w = hi >> 32;
 
     u = (u | u<<16) & c1;		 /* Operations on t,u,v,w   */
     t = (t | t<<16) & c1;		 /* can be done in parallel */
@@ -899,22 +898,21 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
   s2 = WLENM - s1;			/* In [0, WLEN) */
   
-  next1 = a[q4];
-  old = a[2*q4+1];
-  new = a[2*q4];
-
   for (j = q4; j >= 0; j--) {
 
-    next2 = (new >> s1) | ((old << 1) << s2);	/* Beware case s2 == 63 */
+        uint64_t lo      = a[j];
+        uint64_t hi_cur  = a[j + q4];
+        uint64_t hi_next = a[j + q4 + 1];
+    /*  Might have to special-case s1 == 0,
+        which occurs when r % 128 = 127,
+        and presumably set hi = 0 if s1 == 0 ?
+        However, this modified code seems to give
+        the same results as the original code.
+     */
+        uint64_t hi = (hi_cur >> s1) | ((hi_next << 1) << s2);
 
-    u = next1>>32;			/* High order 32 bits low part of a */
-    w = next2>>32;			/* Ditto high part of a */
-    t = next1 & c0;			/* Low order 32 bits low part of a */
-    v = next2 & c0;			/* Ditto high part of a */
-
-    next1 = a[j-1];
-    old   = new;
-    new   = a[j+q4-1];
+        uint64_t t = lo & c0,  u = lo >> 32;
+        uint64_t v = hi & c0,  w = hi >> 32;
 
     u = (u | u<<16) & c1;		 /* Operations on t,u,v,w   */
     t = (t | t<<16) & c1;		 /* can be done in parallel */
