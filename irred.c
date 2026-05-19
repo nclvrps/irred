@@ -734,15 +734,13 @@ uint64_t *a;
   
 #if UNROLL
 
-void reducer(a, b, kt, shift, prev)
+void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
 
 /* 4-way unrolled version of reducer, optimised for Sparc Ultra-80.
    Note that LIM must be at least 10*WLEN. 
    Called by relprime and reducep. Assumes 0 < shift < WLEN. */
 
-uint64_t *a, *b;
-int kt, shift;
-uint64_t *prev;		/* Previous -> last value of new */
+// uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
@@ -792,14 +790,12 @@ uint64_t *prev;		/* Previous -> last value of new */
 
 #elif ULTRA
 
-void reducer(a, b, kt, shift, prev)
+void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
 
 /* Unrolled version of reducer, good on Sparc Ultra-80 and R12000.
    Called by relprime and reducep. Assumes 0 < shift < WLEN. */
 
-uint64_t *a, *b;
-int kt, shift;
-uint64_t *prev;		/* Previous -> last value of new */
+// uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
@@ -836,15 +832,13 @@ uint64_t *prev;		/* Previous -> last value of new */
 
 #else			
 
-void reducer(a, b, kt, shift, prev)
+void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
 
 /* Unrolled version.
    Simplified version of reducea, called by relprime and reducep.
    Assumes 0 < shift < WLEN. */
 
-uint64_t *a, *b;
-int kt, shift;
-uint64_t *prev;		/* Previous -> last value of new */
+// uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
@@ -869,6 +863,11 @@ uint64_t *prev;		/* Previous -> last value of new */
 
 #endif
 
+  int alpha, delta;		/* Could be global */
+  int deltaw, deltaq, deltaqc;	/* ditto */
+  int q11, q4;			/* ditto */
+  uint64_t mask1, mask2;		/* ditto */
+  
 void reducep(uint64_t *a)	
 
 /* Reduces implicit square of polynomial a of degree < r "in place"
@@ -885,25 +884,6 @@ void reducep(uint64_t *a)
   uint64_t new;
   uint64_t temp;
   int j;
-  int alpha, delta;		/* Could be global */
-  int deltaw, deltaq, deltaqc;	/* ditto */
-  int q11, q4;			/* ditto */
-  uint64_t mask1, mask2;		/* ditto */
-  
-  alpha = r >> 1;		/* alpha = (r-1)/2 */
-  delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
-  deltaw = delta >> WD;		/* deltaw = delta div WLEN */
-  deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
-  deltaqc = WLEN - deltaq;	/* Special case if deltaq is zero */
-  q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
-  q4 = alpha >> WD;		/* q4 = alpha div WLEN */
-  
-  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));
-  				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
-  				   zero bits in high positions */
-  mask2 = (~1L) << (alpha & WLENM);
-  				/* mask2 has (alpha mod WLEN) + 1 zero bits
-  				   in low positions */
 
   /* To be safe, mask any high bits of a which are irrelevant */
 
@@ -1473,6 +1453,22 @@ char *argv[];
     if (g) { /* Phase 1 sieve no longer done */
 
       setupx (a);
+
+  alpha = r >> 1;		/* alpha = (r-1)/2 */
+  delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
+  deltaw = delta >> WD;		/* deltaw = delta div WLEN */
+  deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
+  deltaqc = WLEN - deltaq;	/* Special case if deltaq is zero */
+  q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
+  q4 = alpha >> WD;		/* q4 = alpha div WLEN */
+  
+  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));
+  				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
+  				   zero bits in high positions */
+  mask2 = (~1L) << (alpha & WLENM);
+  				/* mask2 has (alpha mod WLEN) + 1 zero bits
+  				   in low positions */
+
       for (k = 0; g && (k < r); k++) {
 
       reducep(a);			/* Reduce (square of) a */
