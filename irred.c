@@ -678,10 +678,6 @@ typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 #define NMAX (WLENM + NEXTRA)	/* Sieve over x^kn - 1 for kn = 2^n-1,
 				   2^n < r, n LE NMAX (but see also NEXTRA) */
 
-#define DYNAMIC TRUE		/* If TRUE, dynamically determine sieving
-				   cutoff with NEXTRA as upper bound (see
-				   above). If FALSE, use exactly NEXTRA. */
-
 #define MC 256			/* Max string length */
 
 /* Struct for the skip list (a singly-linked list of pairs) */
@@ -970,67 +966,6 @@ ULONG *a;
     }
   }
   
-BOOLEAN relprime (p, np, q, nq)
-
-/* Returns TRUE if polynomials p and q (of degrees np and nq)
-   are relatively prime (mod 2). Destroys p and q in the process.
-   Returns FALSE if np < 0 or nq < 0.
-   Time is O(np.nq). */
-   
-ULONG *p, *q;
-int np, nq;
-    
-  {
-  int j, k, del, delq, delr, delrc, high;
-  int wkt = 0;
-  REGISTER ULONG new;
-  ULONG *t;
-  ULONG prev;
-
-  if ((np LT 0) OR (nq LT 0)) return(FALSE);
-  
-  while (TRUE) {
-    if ((wkt -= nq) < 0) {
-      CPUtime += clockd(&cstart, FALSE);
-      					/* Avoid timer overflow by calling */
-      wkt = 0x40000000; 		/* clockd occasionally */
-      } 
-    if (np LT nq) { 			/* p <-> q etc */
-      k = np; np = nq; nq = k;
-      t = p;  p = q; q = t;
-      }  
-    del = np - nq;
-    delq = del >> WD;			/* delq = del/WLEN */			
-    delr = del & WLENM;			/* delr = del%WLEN */			
-    if (delr EQ 0) {			/* Simple case, word aligned */
-      for (j = (nq >> WD); j GE 0; j--) 
-        p[j+delq] ^= q[j];  
-      }
-    else {  				/* Need bit-alignment here */
-      delrc = WLEN - delr;		/* in 1..(WLEN-1) since delr NE 0 */
-      high = (np >> WD) - delq;
-      prev = q[high];			
-      reducer(q, p+delq+1, high-1, delrc, &prev); 	
-      p[delq] ^= (prev << delr);
-      }    
-    for (j = np; j GE 0; j--) { 	/* Find new deg(p) */
-      new = p[j >> WD];
-      if (new EQ 0L) {			/* Speed up search over zero words */
-        np -= j & WLENM;
-        j-= j & WLENM;		
-	}
-      else
-        if ((new >> (j & WLENM)) &1L) break;
-      np--;
-      }
-    for (j = nq; j GE 0; j--) {	/* and deg(q) (not usually necessary) */
-      if ((q[j >> WD] >> (j & WLENM)) &1L) break;
-      nq--;
-      }
-    if (np LT 0) return (nq EQ 0);
-    }
-  }    
-
 void setupx(a)
 
 /* Sets up a = x (polynomial of degree r-1, all mod 2) */
@@ -1328,12 +1263,7 @@ char *str;
    with leading zeros rather than blanks */
 
   {
-  int j;
-  sprintf(str, "%8x", n);
-  for (j = 0; j < 8; j++) {
-    if (str[j] EQ ' ') str[j] = '0';	/* Overwrite blanks by zeros */
-    }  
-  str[8] = '\0';			/* End with null */  
+  snprintf(str, 8+1, "%08x", n);
   }
 
 BOOLEAN prime(n)
@@ -1364,16 +1294,14 @@ char *argv[];
   int j, k, rv;
   int s = -1;
   int s1 = 0, s2 = 0;
-  int n, nsv, nm, kn, pn, qn, rk, sk, sizeah, sizep;
-  int kt1 = 0, kt2 = 0, skt = 0;
+  int n, sizeah, sizep;
+  int skt = 0;
   UINT temp;
   ULONG *a;			/* For polynomial of degree (r-1) */
   ULONG *a0, *a1;		/* a = a0 or a1 */
   ULONG *p, *q;			/* For sieving */
   ULONG new;
 
-  int sieved[NMAX+1];		/* Count sieve successes */
-  int sievemnz;			/* Index of highest nonzero in sieved[] */
   char line[MC];		/* Line buffer */
   char log[] = " LOG";		/* Identifier for log 
   				   (if no log file specified) */
@@ -1381,7 +1309,7 @@ char *argv[];
   struct skip *skiplist;	/* The head of the skip list */
   struct skip *skiprec;
   int slow, shigh;
-  BOOLEAN done, found, g, swan, sievemore;
+  BOOLEAN done, found, g, swan;
   
   printf("\nThis is irred version 3.15\n");	  /* Date 20030328 */
   
@@ -1408,10 +1336,7 @@ char *argv[];
   else if (ULTRA) 
     printf("ULTRA, ");
   if (FASTTRY GT 0) printf("FASTTRY = %d, ", FASTTRY);
-  if (DYNAMIC) 
-    printf("DYNAMIC\n");
-  else
-    printf("NEXTRA = %d\n", NEXTRA);
+  printf("NEXTRA = %d\n", NEXTRA);
 
   printf("\n");
       
@@ -1421,10 +1346,6 @@ char *argv[];
   found = FALSE;
   r = 0;
   line[0] = '\0';
-
-  for (j = NMAX; j GE 0; j--) 
-    sieved[j] = 0;
-  sievemnz = 0;  
 
   if (argc GT 4) {				/* Process skip file */	
     if ((fp = fopen(argv[4], "r")) EQ NULL)
@@ -1551,16 +1472,6 @@ char *argv[];
     					   (does this help ?) */
 #endif
 
-    /* Sieve to discard polynomials which are easily found to be reducible */
-
-    kn = 1;
-    for (nm = n = 2; n LE (NMAX-NEXTRA); n++) { /* Don't need to consider
-    						   n = 1 for a trinomial */
-      kn = 2*kn + 1;			/* kn = 2^n - 1 */
-      if (kn GE r) break;		/* choose nm so 2^nm < r */
-      nm = n;
-      }
-
     if (a0 EQ NULL) {	/* Allocate space for a, b, p and q arrays */
 
       CPUtime += clockd(&cstart, FALSE);
@@ -1589,57 +1500,11 @@ char *argv[];
       a = a1;		/* Will cycle through a1, a0 */
       }
 
-    kn = 1;
     g = TRUE;
-    for (n = 2; n LE nm; n++) {	/* n EQ 1 never succeeds for trinomial, */
-      nsv = n;			/* for n > 1 prob. of success about 1/(n+1) */
-      kn = 2*kn + 1;		/* 2^n - 1 */
-      for (j = kn >> WD; j GE 0; j--)
-        p[j] = 0;
-      p[0] = 1;
-      p[kn >> WD] ^= 1L << (kn & WLENM);	/* p = x^kn + 1 */
-      pn = kn;
-      rk = r%kn;
-      sk = sodd%kn;
-      /* Following is intended to speed up relprime */
-      if (rk < sk){			/* ensure that rk = max (rk, sk) */
-        qn = rk; rk = sk; sk = qn;
-        }
-      if (rk < 2*sk) sk = rk - sk;	/* so now 0 LE 2*sk LE rk */
-      qn = rk;	  			/* degree of q (even if rk = sk = 0) */
-      for (j = qn >> WD; j GE 0; j--)
-        q[j] = 0;
-      q[0] = 1;
-      q[rk >> WD] ^= 1L << (rk & WLENM);
-      q[sk >> WD] ^= 1L << (sk & WLENM); /* q = x^rk + x^sk + 1 */
-      g = relprime(p, pn, q, qn);
-      if (NOT g) break;
-      CPUtime += clockd(&cstart, FALSE);
-      }
-
-    if (NOT g) {
-      kt2++;
-#if VERBOSE      
-      printf("Reducible by test with n %d\n", nsv);
-      fflush(stdout);
-#endif      
-      sieved[nsv]++;
-      if (sievemnz LT nsv) sievemnz = nsv;
-      if (argc GT 2) {
-        fp = myfopen(argv[2], "a");
-        fprintf(fp, "%d %d %d\n", r, s, nsv);
-        fclose(fp);
-        }
-      else {
-        printf("%d %d %d%s\n", r, s, nsv, log);
-        fflush(stdout);
-        }
-      }
 
     CPUtime += clockd(&cstart, FALSE);
-    sievemore = TRUE;
 
-    if (g) { /* Phase 1 sieve did not decide reducibility */
+    if (g) { /* Phase 1 sieve no longer done */
 
       setupx (a);
       for (k = 0; g AND (k < r); k++) {
@@ -1729,9 +1594,6 @@ char *argv[];
         if ((CPUtotal1 GT CPUTOL) AND (CPUtotal1 LT CPUtotal))
           printf("Overall %1.2f percent of time spent sieving\n", 
         	100.0*CPUtotal1/CPUtotal); 
-	printf("Sieving: success %d, failure %d, ", kt2, kt1);
-	printf("rate %1.2f percent\n", 100.0*(double)kt1/(kt1+kt2));
-	for (j = 1; j LE sievemnz; j++) printf ("%d ", sieved[j]);
 	printf("\n");
         }
       fflush(stdout);
