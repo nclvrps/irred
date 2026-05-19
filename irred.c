@@ -1,5 +1,71 @@
-/* irred.c	 					irred version 3.15
+/* irred.c	 					irred version forked from 3.15
  
+
+***********************************************************
+Forked version (2026):
+    https://github.com/nclvrps/irred
+
+Cleaned up with the assistance of Claude (chatbot)
+to create a version suited for 64-bit machines
+and modern optimizing compilers,
+and to remove functionality now better performed by another program.
+
+This forked version removes all sieving for polynomial factors,
+and just does the irreducibility test.
+
+As before, a 32-bit hexadecimal residue is printed
+if a trinomial is not irreducible.
+
+Sieving was removed because the GF2X package has the program "factor"
+in the apps directory of its source code,
+which is much better at finding polynomial factors.
+(Not to be confused with the common GNU utility for factoring integers,
+which is also called "factor")
+
+For very large r where the "factor" program 
+has not found any polynomial factor for a trinomial with some value of s
+after searching candidate polynomials up to a very large degree d,
+it will be faster to use this program to do an irreducibility test
+rather than continuing to seek a factor.
+
+Nonetheless, if this test does confirm non-reducibility, it is desirable
+to take the time (eventually) to find a factor, for ease of verification.
+
+
+For r equal to any Mersenne prime exponent other than 136279841,
+all of the irreducible trinomials have already been found by Brent et al.
+in 2016 and earlier.
+
+For all non-irreducible trinomials (millions of them),
+polynomials factors were found and recorded in certificate files.
+
+Those certificate files are linked from:
+https://maths-people.anu.edu.au/~brent/trinom.html
+
+The check-ntl program is linked from the same page,
+and it can be used to check non-irreducibility very quickly
+by verifying the known factors listed in the certificate files.
+ 
+
+Richard Brent's page about the original version of this program is at:
+https://maths-people.anu.edu.au/~brent/irred.html
+It is somewhat lacking in documentation.
+
+The original version 3.15 of irred can be downloaded from:
+https://maths-people.anu.edu.au/~brent/ftp/trinom/irred315.tar.gz
+
+
+As of this writing (May 2026),
+I don't know if anyone is searching for primitive trinomials
+for r=136279841. Richar Brent's pages have not been updated
+to reflect the discovery in 2024
+of this latest and largest known Mersenne prime.
+
+***********************************************************
+
+
+
+
 ==========================================================================
 |                                                                        |
 |  Copyright (C) 2003 R. P. Brent.                                       |
@@ -165,8 +231,6 @@ References:
 
 #define GNU true		/* Determines if copyright notice is printed
 				   (but the program is copyright anyway) */
-
-/* ===>>> Set exactly one of the following machine types to true <<<=== */
 
   #define IBMPC true /* 32-bit CISC, little-endian, e.g. Pentium.
 
@@ -611,16 +675,7 @@ Compilation flags:
 #define WD    (6)		/* 5 or 6, so WLEN = 2^WD */
 
 	
-#define	NEXTRA 0		/* Do up to NEXTRA GCD computations for
-				   2^(degree) >= r. Usually 3 or 4 is optimal.
-				   Since version 2.80 the cutoff has been 
-				   estimated at runtime (see DYNAMIC below)
-				   and NEXTRA is only used as an upper bound.
-				   This can result in minor differences in 
-				   the log files produced in different runs
-				   or on different machines. */
-
-#define NMAX (WLENM + NEXTRA)	/* Sieve over x^kn - 1 for kn = 2^n-1,
+#define NMAX (WLENM)	/* Sieve over x^kn - 1 for kn = 2^n-1,
 				   2^n < r, n <= NMAX (but see also NEXTRA) */
 
 #define MC 256			/* Max string length */
@@ -1130,7 +1185,6 @@ char *argv[];
   printf("Options ");				  /* Print relevant options */
   if (IBMPC) printf("IBMPC, ");
   if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
-  printf("NEXTRA = %d\n", NEXTRA);
 
   printf("\n");
       
