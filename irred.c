@@ -182,23 +182,6 @@ References:
 		      assembled to give relocatables irred.o
 	 	      */
 
-  #define SPARC false  /* 32-bit RISC, e.g. Old (32-bit) Sun Sparc. 
-  			 Compile with gcc -O6 or (better) cc -Ofast */
-
-  #define ALPHA false /* 64-bit RISC, e.g. DEC Alpha. Compile with
-			   gcc -O4 -mcpu=ev6 -Wa,-arch -Wa,ev6 -funroll-loops 
-			   or cc -fast (on Compaq alphaserver).
-			   Also recommended on recent Sparc processors 
-			   with 64-bit options: 
-			   cc -Ofast -xtarget=ultra -xarch=v9 */
-
-  #define SGI false   /* 64-bit SGI R10000. Compile with cc -64 -Ofast */
-
-
-#define ULTRA (SPARC || SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
-#define UNROLL true		/* Best to set false on Sun-Blade 1000,
-				   but true on Ultra-80 */
-
 /* Following are only relevant on IBM PCs */
 
   #define LINUX true		/* Set true if running under Linux,
@@ -590,13 +573,7 @@ Compilation flags:
    
 */
 
-#if UNROLL
-  #define LIM (10*WLEN)
-#elif ULTRA
- #define LIM (6*WLEN)
-#else			
  #define LIM (2*WLEN) 
-#endif
 
 #define CLEAR true			   /* To clear allocated space */
 
@@ -715,136 +692,20 @@ int size;
   return(ptr);
   }
 
-#if UNROLL
+void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
+             int kt, int shift, uint64_t *prev)
+{
+    const int shiftc = WLEN - shift;
+    uint64_t new = *prev;
+    int j;
 
-void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
-
-/* 4-way unrolled version of reducer, optimised for Sparc Ultra-80.
-   Note that LIM must be at least 10*WLEN. 
-   Called by relprime and reducep. Assumes 0 < shift < WLEN. */
-
-// uint64_t *prev;		/* Previous -> last value of new */
-
-  {
-  int j, shiftc;
-  uint64_t bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
-  new = *prev;
-  shiftc = WLEN - shift;
-  for (j = kt; (j >= 0) && ((j & 3) != 3); j--) { /* Up to 3 iterations */
-    old = new;
-    new = a[j];
-    b[j] ^= (new >> shift) | (old << shiftc);
+    for (j = kt; j >= 0; j--) {
+        uint64_t old = new;
+        new = a[j];
+        b[j] ^= (new >> shift) | (old << shiftc);
     }
-
-  /* Now j+1 is divisible by 4 */
-  
-  old2 = a[j];			/* Preload some registers */
-  new2 = a[j-1];  
-  old4 = a[j-2];
-  new4 = a[j-3];
-  bj   = b[j];
-  bj2  = b[j-1];
-  bj3  = b[j-2];
-  bj4  = b[j-3];
-  				/* Main loop.  Try to load ahead as far
-  				   as possible. This will involve some
-  				   harmless "out of bound" loads */
-  for (; j >= 0; j -= 4) {
-    old  = old2;
-    old2 = a[j-4];
-    b[j] = bj ^ ((old >> shift) | (new << shiftc));
-    bj   = b[j-4];
-    new  = new2;
-    new2 = a[j-5];
-    b[j-1] = bj2 ^ ((new >> shift) | (old << shiftc));
-    bj2  = b[j-5];
-    old  = old4;
-    old4 = a[j-6];
-    b[j-2] = bj3 ^ ((old >> shift) | (new << shiftc));
-    bj3  = b[j-6];
-    new  = new4;
-    new4 = a[j-7];
-    b[j-3] = bj4 ^ ((new >> shift) | (old << shiftc));
-    bj4  = b[j-7];
-    }
-  *prev = new;
-  return;
-  }
-
-#elif ULTRA
-
-void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
-
-/* Unrolled version of reducer, good on Sparc Ultra-80 and R12000.
-   Called by relprime and reducep. Assumes 0 < shift < WLEN. */
-
-// uint64_t *prev;		/* Previous -> last value of new */
-
-  {
-  int j, shiftc;
-  uint64_t bj, bj2, old, new, old2, new2;
-  new = *prev;
-  shiftc = WLEN - shift;
-  for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
-  						      kt even */
-    old = new;
-    new = a[j];
-    b[j] ^= (new >> shift) | (old << shiftc);
-    }
-
-  old2 = a[j];			/* Preload some registers */
-  new2 = a[j-1];  
-  bj   = b[j];
-  bj2  = b[j-1];
-  				/* Main loop.  Try to load ahead as far
-  				   as possible. This will involve some
-  				   harmless "out of bound" loads */
-  for (; j >= 0; j -= 2) {
-    old = old2;
-    old2 = a[j-2];
-    b[j] = bj ^ ((old >> shift) | (new << shiftc));
-    bj = b[j-2];
-    new = new2;
-    new2 = a[j-3];
-    b[j-1] = bj2 ^ ((new >> shift) | (old << shiftc));
-    bj2 = b[j-3];
-    }
-  *prev = new;
-  return;
-  }
-
-#else			
-
-void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
-
-/* Unrolled version.
-   Simplified version of reducea, called by relprime and reducep.
-   Assumes 0 < shift < WLEN. */
-
-// uint64_t *prev;		/* Previous -> last value of new */
-
-  {
-  int j, shiftc;
-  uint64_t old, new;
-  new = *prev;
-  shiftc = WLEN - shift;
-  for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
-  						      kt even */
-    old = new;
-    new = a[j];
-    b[j] ^= (new >> shift) | (old << shiftc);
-    }
-  for (; j >= 0; j -= 2) {
-    old = a[j];					/* old <-> new here ! */
-    b[j] ^= (old >> shift) | (new << shiftc);
-    new = a[j-1];
-    b[j-1] ^= (new >> shift) | (old << shiftc);
-    }
-  *prev = new;
-  return;
-  }
-
-#endif
+    *prev = new;
+}
 
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
@@ -1266,18 +1127,6 @@ char *argv[];
 
   printf("Options ");				  /* Print relevant options */
   if (IBMPC) printf("IBMPC, ");
-  if (ALPHA) printf("ALPHA, ");
-  if (SPARC) printf("SPARC, ");
-  if (SGI)   printf("SGI, ");
-  if ((IBMPC + ALPHA + SPARC + SGI) != 1) {
-    printf("\nPlease set one machine type to true, ");
-    printf("others to false, and recompile\n");
-    return(ERROR);
-    }
-  if (UNROLL) 
-    printf("UNROLL, ");
-  else if (ULTRA) 
-    printf("ULTRA, ");
   if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
   printf("NEXTRA = %d\n", NEXTRA);
 
