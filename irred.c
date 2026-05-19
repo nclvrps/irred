@@ -159,9 +159,6 @@ References:
 
 #define TRUE 1
 #define FALSE 0
-#define AND &&			/* Logical AND */
-#define OR ||			/* Logical OR  */
-#define NOT !			/* Logical NOT */
 
 /* VERBOSE, CONTINUE, GNU determine program behaviour */
 
@@ -202,7 +199,7 @@ References:
   #define SGI FALSE   /* 64-bit SGI R10000. Compile with cc -64 -Ofast */
 
 
-#define ULTRA (SPARC OR SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
+#define ULTRA (SPARC || SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
 #define UNROLL TRUE		/* Best to set FALSE on Sun-Blade 1000,
 				   but TRUE on Ultra-80 */
 
@@ -617,7 +614,7 @@ Compilation flags:
 
 #define TIMEOUT 10		/* Seconds to timeout when opening files */
 #define CPUTOL 0.01		/* Times less than CPUTOL sec are negligible */
-#if (IBMPC AND LINUX)				
+#if (IBMPC && LINUX)				
 
   #define FASTTRY 16		/* Number of a0 to try in fastmem.
 				   Set to 1 if trivial selection desired. */
@@ -635,12 +632,6 @@ Compilation flags:
 				   Assume that CPUTOL is much less than 
 				   CPUTEST. */
 
-#define EQ ==
-#define NE !=
-#define GE >=
-#define GT >
-#define LE <=
-#define LT <
 #define ERROR 1
 #define OK 0
 
@@ -667,7 +658,7 @@ typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 
 	
 #define	NEXTRA 0		/* Do up to NEXTRA GCD computations for
-				   2^(degree) GE r. Usually 3 or 4 is optimal.
+				   2^(degree) >= r. Usually 3 or 4 is optimal.
 				   Since version 2.80 the cutoff has been 
 				   estimated at runtime (see DYNAMIC below)
 				   and NEXTRA is only used as an upper bound.
@@ -676,7 +667,7 @@ typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 				   or on different machines. */
 
 #define NMAX (WLENM + NEXTRA)	/* Sieve over x^kn - 1 for kn = 2^n-1,
-				   2^n < r, n LE NMAX (but see also NEXTRA) */
+				   2^n < r, n <= NMAX (but see also NEXTRA) */
 
 #define MC 256			/* Max string length */
 
@@ -737,7 +728,7 @@ int size;
 #endif
   space += size;
   ptr = (char *)malloc(size);
-  if (ptr EQ NULL) {
+  if (ptr == NULL) {
     printf("malloc unable to allocate %d bytes\n", space);
     exit(ERROR);
     }
@@ -755,12 +746,12 @@ ULONG *a;
   {
   ULONG mask1;
   int j;
-  if (a[0] NE 2L) return(FALSE);
+  if (a[0] != 2L) return(FALSE);
   for (j = q1-1; j > 0; j--) {
-    if (a[j] NE 0) return(FALSE);
+    if (a[j] != 0) return(FALSE);
     }
   mask1 = (ULONG)(~0L) >> (WLENM - ((r-1) & WLENM));  
-  if ((a[q1] & mask1) NE 0) return(FALSE);
+  if ((a[q1] & mask1) != 0) return(FALSE);
   return(TRUE);
   }
   
@@ -781,7 +772,7 @@ ULONG *prev;		/* Previous -> last value of new */
   REGISTER ULONG bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
   new = *prev;
   shiftc = WLEN - shift;
-  for (j = kt; (j GE 0) AND ((j & 3) NE 3); j--) { /* Up to 3 iterations */
+  for (j = kt; (j >= 0) && ((j & 3) != 3); j--) { /* Up to 3 iterations */
     old = new;
     new = a[j];
     b[j] ^= (new >> shift) | (old << shiftc);
@@ -800,7 +791,7 @@ ULONG *prev;		/* Previous -> last value of new */
   				/* Main loop.  Try to load ahead as far
   				   as possible. This will involve some
   				   harmless "out of bound" loads */
-  for (; j GE 0; j -= 4) {
+  for (; j >= 0; j -= 4) {
     old  = old2;
     old2 = a[j-4];
     b[j] = bj ^ ((old >> shift) | (new << shiftc));
@@ -838,7 +829,7 @@ ULONG *prev;		/* Previous -> last value of new */
   REGISTER ULONG bj, bj2, old, new, old2, new2;
   new = *prev;
   shiftc = WLEN - shift;
-  for (j = kt; (j GE 0) AND ((j & 1) EQ 0); j--) { /* One iteration if
+  for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
   						      kt even */
     old = new;
     new = a[j];
@@ -852,7 +843,7 @@ ULONG *prev;		/* Previous -> last value of new */
   				/* Main loop.  Try to load ahead as far
   				   as possible. This will involve some
   				   harmless "out of bound" loads */
-  for (; j GE 0; j -= 2) {
+  for (; j >= 0; j -= 2) {
     old = old2;
     old2 = a[j-2];
     b[j] = bj ^ ((old >> shift) | (new << shiftc));
@@ -883,13 +874,13 @@ ULONG *prev;		/* Previous -> last value of new */
   REGISTER ULONG old, new;
   new = *prev;
   shiftc = WLEN - shift;
-  for (j = kt; (j GE 0) AND ((j & 1) EQ 0); j--) { /* One iteration if
+  for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
   						      kt even */
     old = new;
     new = a[j];
     b[j] ^= (new >> shift) | (old << shiftc);
     }
-  for (; j GE 0; j -= 2) {
+  for (; j >= 0; j -= 2) {
     old = a[j];					/* old <-> new here ! */
     b[j] ^= (old >> shift) | (new << shiftc);
     new = a[j-1];
@@ -907,7 +898,7 @@ void reducep(a)
    given x^r = x^sodd + 1 (mod 2), result left in scrambled order
    0 2 4 ... 1 3 5 ...
    
-   Assumes 0 < sodd < r AND r-sodd GE 2*WLEN AND ODD(r) AND ODD(sodd).
+   Assumes 0 < sodd < r && r-sodd >= 2*WLEN && ODD(r) && ODD(sodd).
     
    Uses about (2.load + 1.store)r/(2.WLEN) memory ops.
    
@@ -946,14 +937,14 @@ ULONG *a;
   a[q1+2] = 0;			/* Ditto */
   new = 0;			/* Assumed by reducemx */
   
-  if (deltaq EQ 0) {		/* Special case deltaqc EQ WLEN */
+  if (deltaq == 0) {		/* Special case deltaqc == WLEN */
     
     for (j = q1; j > q4; j--)	/* C reducer does not work here */
       a[j-deltaw] ^= a[j];
     a[q4-deltaw] ^= a[q4] & mask2;
     }
 
-  else {			/* Usual case, deltaqc LT WLEN */
+  else {			/* Usual case, deltaqc < WLEN */
 
     reducer (a+q4+1, a+q4+1-deltaw, q1-q4-1, deltaq, &new);
 
@@ -973,7 +964,7 @@ void setupx(a)
 ULONG *a;
   {
   int j;
-  for (j = q1; j GT 0; j--)
+  for (j = q1; j > 0; j--)
     a[j] = 0L;
   a[0] = 2L;			/* 0...010 represents x */
   }
@@ -1014,9 +1005,9 @@ int r;
   old = a[q4];
   new = a[q4+1];
 
-  for (j = 0; j LE q4; j++) {
+  for (j = 0; j <= q4; j++) {
 
-    next2 = (old >> s1) | ((new << 1) << s2);	/* Beware case s2 EQ 63 */
+    next2 = (old >> s1) | ((new << 1) << s2);	/* Beware case s2 == 63 */
 
     u = next1>>32;			/* High order 32 bits low part of a */
     w = next2>>32;			/* Ditto high part of a */
@@ -1095,9 +1086,9 @@ int r;
   old = a[2*q4+1];
   new = a[2*q4];
 
-  for (j = q4; j GE 0; j--) {
+  for (j = q4; j >= 0; j--) {
 
-    next2 = (new >> s1) | ((old << 1) << s2);	/* Beware case s2 EQ 63 */
+    next2 = (new >> s1) | ((old << 1) << s2);	/* Beware case s2 == 63 */
 
     u = next1>>32;			/* High order 32 bits low part of a */
     w = next2>>32;			/* Ditto high part of a */
@@ -1154,8 +1145,8 @@ char *fname, *flag;
   
   for (;;) {
     fp = fopen(fname, flag);
-    if (fp NE NULL) break;
-    if ((time += clockd(&openstart, FALSE)) GT TIMEOUT) {
+    if (fp != NULL) break;
+    if ((time += clockd(&openstart, FALSE)) > TIMEOUT) {
       printf("Could not open %s after trying for %d seconds\n", 
 	fname, TIMEOUT);
       exit(ERROR);
@@ -1172,8 +1163,8 @@ int s;
 
   {
   struct skip *skiprec = skiplist;
-  while (skiprec NE NULL) {
-    if ((skiprec->low LE s) AND (s LE skiprec->high))
+  while (skiprec != NULL) {
+    if ((skiprec->low <= s) && (s <= skiprec->high))
       return(TRUE);
     skiprec = skiprec->next;
     }  
@@ -1202,12 +1193,12 @@ double *CPUest;
   ULONG *a0, *a1, *a;
   ULONG *savea0[FASTTRY+1];
 
-  nits = ((FASTTRY LE 0) OR (r LT SMALLR)) ? 1 : FASTTRY;
+  nits = ((FASTTRY <= 0) || (r < SMALLR)) ? 1 : FASTTRY;
 
   bestkt = 1;		/* Index of best a0 yet */
   CPUworst = 0;
   CPUbest = 1;
-  for (kt = nits; kt GT 0; kt--) {
+  for (kt = nits; kt > 0; kt--) {
     CPUtime = clockd(&cstart, TRUE);
     a0 = (ULONG *)mymalloc(3*sizeah*(int)sizeof(ULONG));
     savea0[kt] = a0; 	/* Save for later free or return */
@@ -1218,9 +1209,9 @@ double *CPUest;
     a = a1;		/* Will cycle through a1, a0 */
 
     setupx (a);	
-    for (nkt = 0; CPUtime LT CPUTEST; nkt++) {
+    for (nkt = 0; CPUtime < CPUTEST; nkt++) {
       reducep(a);		/* Timing run for about CPUTEST seconds */
-      if (a EQ a1) {
+      if (a == a1) {
         interlvf(a1, a0, r);		/* Forward interleave */
         a = a0;				/* Adjust pointer to data */
         }
@@ -1228,19 +1219,19 @@ double *CPUest;
         interlvr(a0, a1, r);		/* Reverse interleave */
         a = a1;
         }
-      if ((nkt & 0x7F) EQ 0)		/* Reduce overhead of clockd calls */
+      if ((nkt & 0x7F) == 0)		/* Reduce overhead of clockd calls */
         CPUtime += clockd(&cstart, FALSE);
       }
     CPUtime = CPUtime/(double)nkt;	/* Normalise CPU time */
-    if ((nkt EQ 0) OR (CPUtime LT CPUbest)) {
+    if ((nkt == 0) || (CPUtime < CPUbest)) {
       CPUbest = CPUtime;		/* Save best result yet */
       bestkt = kt;
       }
-    if (CPUtime GT CPUworst)
+    if (CPUtime > CPUworst)
       CPUworst = CPUtime;  		/* and (for comparison) worst too */
     }
-  for (kt = nits; kt GT 0; kt--) {	/* Free all but the "best" space */
-    if (kt NE bestkt) 	
+  for (kt = nits; kt > 0; kt--) {	/* Free all but the "best" space */
+    if (kt != bestkt) 	
       free(savea0[kt]);
     }
   CPUtime = ((double)r)*CPUtime;	/* Estimate of overall time */
@@ -1273,11 +1264,11 @@ int n;
 
   {
   long j;
-  if (n LE 1) return(FALSE);		/* n < 2 */
-  if (n LE 3) return(TRUE);		/* n = 2 or 3 */
-  if ((n & 1) EQ 0) return(FALSE);	/* n even, not 2 */
-  for (j = 3; j LE (n/j); j += 2) {	/* n > 3 */
-    if ((n%j) EQ 0) return(FALSE);
+  if (n <= 1) return(FALSE);		/* n < 2 */
+  if (n <= 3) return(TRUE);		/* n = 2 or 3 */
+  if ((n & 1) == 0) return(FALSE);	/* n even, not 2 */
+  for (j = 3; j <= (n/j); j += 2) {	/* n > 3 */
+    if ((n%j) == 0) return(FALSE);
     }
   return(TRUE);
   }
@@ -1326,7 +1317,7 @@ char *argv[];
   if (ALPHA) printf("ALPHA, ");
   if (SPARC) printf("SPARC, ");
   if (SGI)   printf("SGI, ");
-  if ((IBMPC + ALPHA + SPARC + SGI) NE 1) {
+  if ((IBMPC + ALPHA + SPARC + SGI) != 1) {
     printf("\nPlease set one machine type to TRUE, ");
     printf("others to FALSE, and recompile\n");
     return(ERROR);
@@ -1335,7 +1326,7 @@ char *argv[];
     printf("UNROLL, ");
   else if (ULTRA) 
     printf("ULTRA, ");
-  if (FASTTRY GT 0) printf("FASTTRY = %d, ", FASTTRY);
+  if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
   printf("NEXTRA = %d\n", NEXTRA);
 
   printf("\n");
@@ -1347,15 +1338,15 @@ char *argv[];
   r = 0;
   line[0] = '\0';
 
-  if (argc GT 4) {				/* Process skip file */	
-    if ((fp = fopen(argv[4], "r")) EQ NULL)
+  if (argc > 4) {				/* Process skip file */	
+    if ((fp = fopen(argv[4], "r")) == NULL)
       printf("Warning - can not open skip file\n"); 
     else {					/* Ignore if can't open */
-      while (fgets(line, MC, fp) NE NULL) {
+      while (fgets(line, MC, fp) != NULL) {
         skiprec = (struct skip *)mymalloc((int)sizeof(struct skip));
         slow = shigh = 0;  
-        if (sscanf(line, "%d %d", &slow, &shigh) LT 2) break;
-        if ((slow LE 0) OR (slow GT shigh)) break; /* GE -> GT 20010307 */
+        if (sscanf(line, "%d %d", &slow, &shigh) < 2) break;
+        if ((slow <= 0) || (slow > shigh)) break; /* >= changed to > 20010307 */
 #if FALSE				  	   /* Print skip list */
         printf("Will skip s in [%d, %d]\n", slow, shigh);
 #endif      
@@ -1368,11 +1359,11 @@ char *argv[];
       }
     }  
 
-  if (argc GT 3) {   /* Run-time bound if nonzero, ignored if zero */
-    if (sscanf(argv[3], "%d", &minutes) LE 0) minutes = 0;
+  if (argc > 3) {   /* Run-time bound if nonzero, ignored if zero */
+    if (sscanf(argv[3], "%d", &minutes) <= 0) minutes = 0;
     }
     	  
-  if (argc GT 1) {
+  if (argc > 1) {
     fp = myfopen(argv[1], "r");
     fgets(line, MC, fp);   
     fclose(fp);	
@@ -1382,53 +1373,53 @@ char *argv[];
     fgets(line, MC, stdin);
     }
   rv = sscanf(line, "%d %d %d", &r, &s1, &s2);
-  if (rv LT 3) s2 = 0;
-  if (rv LT 2) s1 = 0;
-  if (rv LT 1) r = 0;
-  if (NOT prime(r)) {			  /* See comments above */
+  if (rv < 3) s2 = 0;
+  if (rv < 2) s1 = 0;
+  if (rv < 1) r = 0;
+  if (! prime(r)) {			  /* See comments above */
     printf("\nWarning: r = %d is not prime, so irreducibility test", r);
     printf(" is incomplete\n\n");
     }	
     					  /* Searches up from initial s1
     					     to s2-1 (or down to s2+1) */ 
-  if (s1 LT 0) return(OK);
-  if (s1 GE r) s1 = r/2;		  /* Reasonable defaults */
-  if (s2 LT 0) s2 = 0;
-  if (s2 GT r) s2 = (s1 GT r/2) ? r - 64: r/2 + 1;  
+  if (s1 < 0) return(OK);
+  if (s1 >= r) s1 = r/2;		  /* Reasonable defaults */
+  if (s2 < 0) s2 = 0;
+  if (s2 > r) s2 = (s1 > r/2) ? r - 64: r/2 + 1;  
 
   /* Swan's theorem says trinomial is reducible if r = +- 3 (mod 8)
      and s is not 2 or r-2 */
      
-  swan = ((r%8) EQ 3) OR ((r%8) EQ 5);
+  swan = ((r%8) == 3) || ((r%8) == 5);
   if (swan) {
     printf("Swan's theorem applies, only need to test s = 2\n");
     s1 = 2;
     s2 = 1;
     }   
 
-  if (s1 LT s2)
+  if (s1 < s2)
     printf("Searching from %d to %d\n", s1, s2-1);
-  else if (s1 GT s2)
+  else if (s1 > s2)
     printf("Searching from %d down to %d\n", s1, s2+1);
   else
     printf("Empty search interval at %d\n", s1);
-  if (minutes NE 0) printf("Time limit %d minutes\n", minutes);
+  if (minutes != 0) printf("Time limit %d minutes\n", minutes);
   fflush(stdout);  
-  while ((s1 NE s2) AND (NOT found) AND 
-    ((minutes EQ 0) OR (CPUtotal < 60*minutes))) {
+  while ((s1 != s2) && (! found) && 
+    ((minutes == 0) || (CPUtotal < 60*minutes))) {
 
     done = FALSE;
     for (;;) {		/* Look for next s in range but not in skiplist */
       s = s1; 
-      if (s1 EQ s2) {
+      if (s1 == s2) {
         done = TRUE;
         break;
         }
-      if (s1 LT s2)
+      if (s1 < s2)
         s1++;
       else
         s1--;
-      if (NOT skips(skiplist, s)) break;		  
+      if (! skips(skiplist, s)) break;		  
       }   
     if (done) break;  
 
@@ -1438,10 +1429,10 @@ char *argv[];
     printf ("\nr %d, s %d, r-s %d\n", r, s, r-s);
 #endif
 
-    if ((sodd LE 0) OR (r LE sodd) OR 
-      (NOT ODD(r)) OR (NOT ODD(sodd)) OR ((r-sodd) LT LIM)) {
+    if ((sodd <= 0) || (r <= sodd) || 
+      (! ODD(r)) || (! ODD(sodd)) || ((r-sodd) < LIM)) {
         printf ("Illegal parameters\n");
-        if (NOT ODD(s))
+        if (! ODD(s))
           printf("For small even s try version 1.35 or earlier\n");
         return(ERROR);
         }            
@@ -1472,7 +1463,7 @@ char *argv[];
     					   (does this help ?) */
 #endif
 
-    if (a0 EQ NULL) {	/* Allocate space for a, b, p and q arrays */
+    if (a0 == NULL) {	/* Allocate space for a, b, p and q arrays */
 
       CPUtime += clockd(&cstart, FALSE);
       CPUtotal += CPUtime;
@@ -1507,13 +1498,13 @@ char *argv[];
     if (g) { /* Phase 1 sieve no longer done */
 
       setupx (a);
-      for (k = 0; g AND (k < r); k++) {
+      for (k = 0; g && (k < r); k++) {
 
       reducep(a);			/* Reduce (square of) a */
 
       /* Interleave in forward/reverse directions alternately */
 
-      if (a EQ a1) {
+      if (a == a1) {
         interlvf(a1, a0, r);		/* Forward interleave */
         a = a0;				/* Adjust pointer to data */
         }
@@ -1522,21 +1513,21 @@ char *argv[];
         a = a1;
         }
 
-      if ((k & 0x7FFFL) EQ 0) { 	 	/* Avoid timer overflow by */
+      if ((k & 0x7FFFL) == 0) { 	 	/* Avoid timer overflow by */
         CPUtime += clockd(&cstart, FALSE);	/* calling clockd sometimes */
         }
         
-	if (NOT g) break;  
+	if (! g) break;  
         }
 
       CPUtime += clockd(&cstart, FALSE);
 
       if (g) {       
        if (comparex(a)) {
-        found = (NOT CONTINUE);
+        found = (! CONTINUE);
         printf("%d %d irreducible (primitive if 2^%d-1 is prime)\n", r, s, r);
         fflush(stdout);
-        if (argc GT 2) {
+        if (argc > 2) {
           fp = myfopen(argv[2], "a");
 	  fprintf(fp, "%d %d irreducible (may be primitive)\n", r, s);
  	  fclose(fp);
@@ -1554,16 +1545,16 @@ char *argv[];
 #if VERBOSE
         printf("Not irreducible/primitive, low word %s (hex)\n", str8); 
 #endif
-        if (argc GT 2) {
+        if (argc > 2) {
           fp = myfopen(argv[2], "a");
-          if (s EQ sodd)
+          if (s == sodd)
    	    fprintf(fp, "%d %d x%s\n", r, s, str8);
  	  else
    	    fprintf(fp, "%d %d y%s\n", r, s, str8);
  	  fclose(fp);
           }
         else {
-          if (s EQ sodd)
+          if (s == sodd)
    	    printf("%d %d x%s%s\n", r, s, str8, log);
 	  else
    	    printf("%d %d y%s%s\n", r, s, str8, log);
@@ -1573,13 +1564,13 @@ char *argv[];
       }
       
 #if VERBOSE        
-      if (CPUtime GT CPUTOL) {  
+      if (CPUtime > CPUTOL) {  
         printf("CPU time (not sieving) %.2f sec = ", CPUtime);
         printf("%2.2f r^2 nsec\n", 1.0e9*CPUtime/r/r);
         }
-      if (CPUtime1 GT CPUTOL) {
+      if (CPUtime1 > CPUTOL) {
 	printf("CPU time (sieving)     %.2f sec", CPUtime1);
-	if (CPUtime GT CPUtime1)
+	if (CPUtime > CPUtime1)
           printf(", ratio %2.0f", CPUtime/CPUtime1);
         printf("\n");   
         }
@@ -1588,10 +1579,10 @@ char *argv[];
       CPUtotal += CPUtime;
       CPUtime = 0;
 #if VERBOSE
-      if (CPUtotal GT CPUTOL) {
+      if (CPUtotal > CPUTOL) {
         printf("\nOverall time %.2f sec = ", CPUtotal);
         printf("%.4f sec per trinomial\n", CPUtotal/skt);
-        if ((CPUtotal1 GT CPUTOL) AND (CPUtotal1 LT CPUtotal))
+        if ((CPUtotal1 > CPUTOL) && (CPUtotal1 < CPUtotal))
           printf("Overall %1.2f percent of time spent sieving\n", 
         	100.0*CPUtotal1/CPUtotal); 
 	printf("\n");
@@ -1603,7 +1594,7 @@ char *argv[];
     /* Try again until irreducible/primitive trinomial found
        (or until all s checked if CONTINUE is true) */
 
-    if (argc GT 1) {
+    if (argc > 1) {
       fp = myfopen(argv[1], "w");
       fprintf(fp, "%d %d %d\n", r, s1, s2);
       fclose(fp);
@@ -1612,19 +1603,19 @@ char *argv[];
     if (swan) break;
     }
 
-  if (argc GT 1) {
+  if (argc > 1) {
     fp = myfopen(argv[1], "w");
     fprintf(fp, "%d %d %d\n", r, s1, s2);
     fclose(fp);
     }
 
-  if ((NOT found) AND (p NE NULL) AND (s NE -1))
+  if ((! found) && (p != NULL) && (s != -1))
     printf("Searched to %d\n", s);
 #if VERBOSE
   printf("Working set after sieving about %d bytes\n", (3*r)>>4);
   printf("Dynamic storage allocation %d bytes\n", space);
   printf("%d clock calls\n", clockcalls);
-  if (syscalls GT 0) printf("%d system/sleep calls\n", syscalls);
+  if (syscalls > 0) printf("%d system/sleep calls\n", syscalls);
 #endif
   return(OK);				/* Normal exit */
   }
