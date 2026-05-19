@@ -666,7 +666,7 @@ typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
 #define WD    (6)		/* 5 or 6, so WLEN = 2^WD */
 
 	
-#define	NEXTRA 10		/* Do up to NEXTRA GCD computations for
+#define	NEXTRA 0		/* Do up to NEXTRA GCD computations for
 				   2^(degree) GE r. Usually 3 or 4 is optimal.
 				   Since version 2.80 the cutoff has been 
 				   estimated at runtime (see DYNAMIC below)
@@ -1661,85 +1661,6 @@ char *argv[];
         CPUtime += clockd(&cstart, FALSE);	/* calling clockd sometimes */
         }
         
-      /* Phase 2 sieve: compute GCD(a(x)+x, trinomial) for small k */
-
-        if (sievemore AND (k GE nm) AND (k LT (nm+NEXTRA)) AND (k LT (r-1))) {
-	  for (j = q1; j GE 0; j--)
-            p[j] = a[j];		/* Copy as relprime destroys p, q */
-	  p[0] ^= 2L;			/* Add x (mod 2) */
-	  pn = r;			/* Upper bound on degree */
-	  for (j = pn; j GE 0; j--) {	/* Find exact degree */
-	    new = p[j >> WD];
-      	    if (new EQ 0L) {		/* Speed up search over zero words */
-	      pn -= j & WLENM;
- 	      j-= j & WLENM;		
-	      }
-	    else
-	      if ((new >> (j & WLENM)) &1L) break;
-      	    pn--;
-	    }
-	  qn = r;
-	  for (j = qn >> WD; j GE 0; j--) q[j] = 0;
-	  q[0] = 1;
-	  q[r >> WD] ^= 1L << (r & WLENM);
-	  q[sodd >> WD] ^= 1L << (sodd & WLENM); /* q = x^r + x^sodd + 1 */
-
-	  g = relprime(p, pn, q, qn);
-
-	  if (k LT (nm + NEXTRA)) {
-	    CPUtime += clockd(&cstart, FALSE);
-	    CPUlast = CPUtime;
-	    CPUtime1 += CPUtime;	/* CPUtime1 is for sieving */
-	    CPUtotal += CPUtime;
-	    CPUtime = 0;		/* Non-sieving from now on */
-#if DYNAMIC
-	 /* Compute sieve cutoff based on probability of success for next
-	    higher degree and estimated time for complete test.
-	    Current degree is k+1, next degree is k+2 = d say,
-	    and probability of success sieving with degree d
-	    is approximately 1/(d+1) = 1/(k+3). We assume that
-	    sieving with degree d takes about the same time as
-	    the total sieving time for degrees less than d
-	    (i.e. assume sieving time double when degree increments). */
-
-	    sievemore = (((double)(k+3)*CPUtime1) < CPUest);
-#endif
-	    }
-	    
-	  if (g) {
-	    if ((NOT sievemore) OR (k EQ (nm + (NEXTRA - 1)))) { 		
-	      kt1++;			/* Unsuccessful sieve count */
-	      sieved[0]++;
-#if VERBOSE
-	      if (CPUtime1 GT CPUTOL) {
-		printf("Sieving to degree %d unsuccessful after %.2f sec", 
-		  k+1, CPUtime1); 
-		if (CPUlast GT CPUTOL) 
-		  printf(", degree %d took %.2f sec", k+1, CPUlast);
-		printf("\n");
-		}
-	      fflush(stdout);
-#endif	      
-	      }
-            }
-          else {
-	    kt2++;
-#if VERBOSE      
-	    printf("Reducible by test with n %d\n", k+1);
-#endif      
-	    sieved[k+1]++;
-	    if (sievemnz LE k) sievemnz = k+1;
-	    if (argc GT 2) {
-	      fp = myfopen(argv[2], "a");
-	      fprintf(fp, "%d %d %d\n", r, s, k+1);
-	      fclose(fp);
-	      }
-	    else {
-	      printf("%d %d %d%s\n", r, s, k+1, log); /* bug in 1.31 fixed */
-	      fflush(stdout);
-	      }
-	    }
-	  }
 	if (NOT g) break;  
         }
 
