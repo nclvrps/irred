@@ -154,11 +154,7 @@ References:
 #include <stdlib.h>		/* For malloc */
 #include <stdint.h>
 #include <stdbool.h>
-#include <unistd.h>     /* For sleep */
 #include <time.h>   		/* For clock */
-
-#define true 1
-#define false 0
 
 /* VERBOSE, CONTINUE, GNU determine program behaviour */
 
