@@ -232,7 +232,7 @@ Comments on different versions:
 
    Version 3.12 has
    
-   1) Argument of prime(n) is type int instead of ULONG
+   1) Argument of prime(n) is type int instead of uint64_t
       to avoid diagnostic on 64-bit (e.g. SGI) machines.
 
    Version 3.11 has
@@ -638,15 +638,7 @@ Compilation flags:
 #define CEIL(i,j)       (((i)+(j)-1)/(j))
 #define ODD(i)		((i)&1)
 
-/* Type definitions */
-
-typedef _Bool BOOLEAN;
-typedef uint8_t  UCHAR;	/* Assumed to be 8 bits */
-typedef uint16_t USHORT;  /* Assume 16 bits - no longer required */
-typedef unsigned int   UINT;	/* Assumed to be (at least) 32 bits */  	
-typedef uint64_t  ULONG;	/* Should be 32 or 64 bits */
-
-#define WLEN  (64)	/* Bits in a long word, should be 32 or 64 */
+#define WLEN  (64)	/* Bits in a long word, always assume 64-bit */
 #define WLENM (WLEN-1)		/* Ditto less 1, i.e. 31 or 63 */
 #define WD    (6)		/* 5 or 6, so WLEN = 2^WD */
 
@@ -681,15 +673,15 @@ clock_t cstart;
 
 	/* 32 bits should suffice for these counters */
 
-UINT syscalls = 0;			/* Counts calls to system/sleep */
-UINT clockcalls = 0;			/* Counts calls to clock */
-UINT space = 0;				/* Counts bytes allocated by malloc */
+unsigned int syscalls = 0;			/* Counts calls to system/sleep */
+unsigned int clockcalls = 0;			/* Counts calls to clock */
+unsigned int space = 0;				/* Counts bytes allocated by malloc */
 
 /* Routines start here */
 
 double clockd(starta, first)
 clock_t *starta;
-BOOLEAN first;
+bool first;
 
 /* If first = true, initialises *starta and returns zero.
    If first = false, returns time in sec since last call and updates starta. 
@@ -699,11 +691,11 @@ BOOLEAN first;
   
   {
   clock_t stop;
-  ULONG diff;
+  uint64_t diff;
   stop = (clock_t) clock();
   clockcalls++;
   if (first) *starta = stop;
-  diff = (ULONG)(stop - *starta);	/* May wrap around in 2^32/10^6 sec */
+  diff = (uint64_t)(stop - *starta);	/* May wrap around in 2^32/10^6 sec */
   *starta = stop;
   return ((double)diff*((double)1/(double)CLOCKS_PER_SEC));
   }
@@ -732,19 +724,19 @@ int size;
   return(ptr);
   }
 
-BOOLEAN comparex(a)
+bool comparex(a)
 
 /* Returns true if poly a of degree r-1 is x */
 
-ULONG *a;
+uint64_t *a;
   {
-  ULONG mask1;
+  uint64_t mask1;
   int j;
   if (a[0] != 2L) return(false);
   for (j = q1-1; j > 0; j--) {
     if (a[j] != 0) return(false);
     }
-  mask1 = (ULONG)(~0L) >> (WLENM - ((r-1) & WLENM));  
+  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));  
   if ((a[q1] & mask1) != 0) return(false);
   return(true);
   }
@@ -757,13 +749,13 @@ void reducer(a, b, kt, shift, prev)
    Note that LIM must be at least 10*WLEN. 
    Called by relprime and reducep. Assumes 0 < shift < WLEN. */
 
-ULONG *a, *b;
+uint64_t *a, *b;
 int kt, shift;
-ULONG *prev;		/* Previous -> last value of new */
+uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
-  ULONG bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
+  uint64_t bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 3) != 3); j--) { /* Up to 3 iterations */
@@ -814,13 +806,13 @@ void reducer(a, b, kt, shift, prev)
 /* Unrolled version of reducer, good on Sparc Ultra-80 and R12000.
    Called by relprime and reducep. Assumes 0 < shift < WLEN. */
 
-ULONG *a, *b;
+uint64_t *a, *b;
 int kt, shift;
-ULONG *prev;		/* Previous -> last value of new */
+uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
-  ULONG bj, bj2, old, new, old2, new2;
+  uint64_t bj, bj2, old, new, old2, new2;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
@@ -859,13 +851,13 @@ void reducer(a, b, kt, shift, prev)
    Simplified version of reducea, called by relprime and reducep.
    Assumes 0 < shift < WLEN. */
 
-ULONG *a, *b;
+uint64_t *a, *b;
 int kt, shift;
-ULONG *prev;		/* Previous -> last value of new */
+uint64_t *prev;		/* Previous -> last value of new */
 
   {
   int j, shiftc;
-  ULONG old, new;
+  uint64_t old, new;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
@@ -898,16 +890,16 @@ void reducep(a)
    
    RPB, 20000815. */
 
-ULONG *a;
+uint64_t *a;
 
   {
-  ULONG new;
-  ULONG temp;
+  uint64_t new;
+  uint64_t temp;
   int j;
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
   int q1, q4;			/* ditto */
-  ULONG mask1, mask2;		/* ditto */
+  uint64_t mask1, mask2;		/* ditto */
   
   alpha = r >> 1;		/* alpha = (r-1)/2 */
   delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
@@ -917,7 +909,7 @@ ULONG *a;
   q1 = (r-1) >> WD;		/* q1 = (r-1) div WLEN */
   q4 = alpha >> WD;		/* q4 = alpha div WLEN */
   
-  mask1 = (ULONG)(~0L) >> (WLENM - ((r-1) & WLENM));
+  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));
   				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
   				   zero bits in high positions */
   mask2 = (~1L) << (alpha & WLENM);
@@ -955,7 +947,7 @@ void setupx(a)
 
 /* Sets up a = x (polynomial of degree r-1, all mod 2) */
 
-ULONG *a;
+uint64_t *a;
   {
   int j;
   for (j = q1; j > 0; j--)
@@ -974,13 +966,13 @@ void interlvf(a, b, r)
 
    RPB, 20000907 */
 
-ULONG *a, *b;
+uint64_t *a, *b;
 int r;
 
   {
   int j, s1, s2, q4;
-  ULONG t, u, v, w, next1, next2, old, new;
-  ULONG c0, c1, c2, c3, c4, c5;
+  uint64_t t, u, v, w, next1, next2, old, new;
+  uint64_t c0, c1, c2, c3, c4, c5;
   int alpha;
 
   c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
@@ -1055,13 +1047,13 @@ void interlvr(a, b, r)
 
    RPB, 20000907 */
 
-ULONG *a, *b;
+uint64_t *a, *b;
 int r;
 
   {
   int j, s1, s2;
-  ULONG t, u, v, w, next1, next2, old, new;
-  ULONG c0, c1, c2, c3, c4, c5;
+  uint64_t t, u, v, w, next1, next2, old, new;
+  uint64_t c0, c1, c2, c3, c4, c5;
   int q4, alpha;
 
   c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
@@ -1149,7 +1141,7 @@ char *fname, *flag;
   return(fp);
   }
 
-BOOLEAN skips(skiplist, s)
+bool skips(skiplist, s)
 struct skip *skiplist;
 int s;
 
@@ -1165,7 +1157,7 @@ int s;
   return(false);
   }
 
-ULONG *fastmem(r, sodd, sizeah, CPUest)
+uint64_t *fastmem(r, sodd, sizeah, CPUest)
 
 int r, sodd, sizeah;
 double *CPUest;
@@ -1184,8 +1176,8 @@ double *CPUest;
   clock_t cstart;
   double CPUbest, CPUworst, CPUtime;
   int nkt, kt, bestkt, nits;
-  ULONG *a0, *a1, *a;
-  ULONG *savea0[FASTTRY+1];
+  uint64_t *a0, *a1, *a;
+  uint64_t *savea0[FASTTRY+1];
 
   nits = ((FASTTRY <= 0) || (r < SMALLR)) ? 1 : FASTTRY;
 
@@ -1194,7 +1186,7 @@ double *CPUest;
   CPUbest = 1;
   for (kt = nits; kt > 0; kt--) {
     CPUtime = clockd(&cstart, true);
-    a0 = (ULONG *)mymalloc(3*sizeah*(int)sizeof(ULONG));
+    a0 = (uint64_t *)mymalloc(3*sizeah*(int)sizeof(uint64_t));
     savea0[kt] = a0; 	/* Save for later free or return */
     /* Changed 2 to 6 in version 3.15 to avoid out of bounds problem 
        (sizeah also increased by 4 before call to fastmem) */
@@ -1241,7 +1233,7 @@ double *CPUest;
   }
 
 void hex8(n, str)
-UINT n;
+unsigned int n;
 char *str;
 
 /* Return str as 8-character hex string representing n,
@@ -1251,7 +1243,7 @@ char *str;
   snprintf(str, 8+1, "%08x", n);
   }
 
-BOOLEAN prime(n)
+bool prime(n)
 int n;
 
 /* Returns true if n is prime. Simple and not intended to be efficient. */
@@ -1281,11 +1273,11 @@ char *argv[];
   int s1 = 0, s2 = 0;
   int n, sizeah, sizep;
   int skt = 0;
-  UINT temp;
-  ULONG *a;			/* For polynomial of degree (r-1) */
-  ULONG *a0, *a1;		/* a = a0 or a1 */
-  ULONG *p, *q;			/* For sieving */
-  ULONG new;
+  unsigned int temp;
+  uint64_t *a;			/* For polynomial of degree (r-1) */
+  uint64_t *a0, *a1;		/* a = a0 or a1 */
+  uint64_t *p, *q;			/* For sieving */
+  uint64_t new;
 
   char line[MC];		/* Line buffer */
   char log[] = " LOG";		/* Identifier for log 
@@ -1294,7 +1286,7 @@ char *argv[];
   struct skip *skiplist;	/* The head of the skip list */
   struct skip *skiprec;
   int slow, shigh;
-  BOOLEAN done, found, g, swan;
+  bool done, found, g, swan;
   
   printf("\nThis is irred version 3.15\n");	  /* Date 20030328 */
   
@@ -1473,8 +1465,8 @@ char *argv[];
       /* The "+ 4"s were added in version 3.15 to avoid valgrind diagnostics
          caused by reading p[-1] or q[-1] */
          
-      p  = (ULONG *)mymalloc((sizep + 4)*(int)sizeof(ULONG)) + 4;
-      q  = (ULONG *)mymalloc((sizep + 4)*(int)sizeof(ULONG)) + 4;
+      p  = (uint64_t *)mymalloc((sizep + 4)*(int)sizeof(uint64_t)) + 4;
+      q  = (uint64_t *)mymalloc((sizep + 4)*(int)sizeof(uint64_t)) + 4;
       	
       a0 += 2;		/* For optimisation in interlvr, may access a[-1] */	
       			/* See comments in fastmem re version 3.15 change */
@@ -1533,7 +1525,7 @@ char *argv[];
         }
       else {
 
-	temp = (UINT)((a[0]<<32)>>32);
+	temp = (unsigned int)((a[0]<<32)>>32);
 
         hex8(temp, str8);
 #if VERBOSE
