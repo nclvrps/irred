@@ -712,6 +712,18 @@ void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
   int q11, q4;			/* ditto */
   uint64_t mask1, mask2;		/* ditto */
   
+static void xor_shift_zero(uint64_t * __restrict__ dst,
+                            const uint64_t * __restrict__ src,
+                            int count)
+/* XORs count+1 elements: dst[j] ^= src[j] for j = 0..count.
+   dst and src are guaranteed non-overlapping (caller ensures this
+   via r - sodd >= LIM). */
+{
+    int j;
+    for (j = count; j >= 0; j--)
+        dst[j] ^= src[j];
+}
+
 void reducep(uint64_t *a)	
 
 /* Reduces implicit square of polynomial a of degree < r "in place"
@@ -737,9 +749,7 @@ void reducep(uint64_t *a)
   new = 0;			/* Assumed by reducemx */
   
   if (deltaq == 0) {		/* Special case deltaqc == WLEN */
-    
-    for (j = q11; j > q4; j--)	/* C reducer does not work here */
-      a[j-deltaw] ^= a[j];
+    xor_shift_zero(a + q4 - deltaw, a + q4, q1 - q4 - 1); 
     a[q4-deltaw] ^= a[q4] & mask2;
     }
 
