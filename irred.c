@@ -37,7 +37,7 @@ Restrictions, Assumptions and Limitations:
    or 256 for IBMPC ASM option
    (other cases can be handled by less efficient programs,
    e.g. irred version 1.35 or earlier versions,
-     or irred version 1.50 with ODDS FALSE).
+     or irred version 1.50 with ODDS false).
 
    It is assumed that r is prime - if not true then a warning is printed.
    There is no check on whether or not 2^r-1 is prime.
@@ -157,22 +157,22 @@ References:
 #include <unistd.h>     /* For sleep */
 #include <time.h>   		/* For clock */
 
-#define TRUE 1
-#define FALSE 0
+#define true 1
+#define false 0
 
 /* VERBOSE, CONTINUE, GNU determine program behaviour */
 
-#define VERBOSE TRUE		/* If true give more informative output */
+#define VERBOSE true		/* If true give more informative output */
 
-#define CONTINUE FALSE		/* If true, continue after finding a
+#define CONTINUE false		/* If true, continue after finding a
                                    primitive trinomial (useful for small r) */
 
-#define GNU TRUE		/* Determines if copyright notice is printed
+#define GNU true		/* Determines if copyright notice is printed
 				   (but the program is copyright anyway) */
 
-/* ===>>> Set exactly one of the following machine types to TRUE <<<=== */
+/* ===>>> Set exactly one of the following machine types to true <<<=== */
 
-  #define IBMPC TRUE /* 32-bit CISC, little-endian, e.g. Pentium.
+  #define IBMPC true /* 32-bit CISC, little-endian, e.g. Pentium.
 
 		      With gcc 2.95.2, compile irred.c with
 		      gcc -O1 -fomit-frame-pointer -funroll-loops
@@ -186,27 +186,27 @@ References:
 		      assembled to give relocatables irred.o
 	 	      */
 
-  #define SPARC FALSE  /* 32-bit RISC, e.g. Old (32-bit) Sun Sparc. 
+  #define SPARC false  /* 32-bit RISC, e.g. Old (32-bit) Sun Sparc. 
   			 Compile with gcc -O6 or (better) cc -Ofast */
 
-  #define ALPHA FALSE /* 64-bit RISC, e.g. DEC Alpha. Compile with
+  #define ALPHA false /* 64-bit RISC, e.g. DEC Alpha. Compile with
 			   gcc -O4 -mcpu=ev6 -Wa,-arch -Wa,ev6 -funroll-loops 
 			   or cc -fast (on Compaq alphaserver).
 			   Also recommended on recent Sparc processors 
 			   with 64-bit options: 
 			   cc -Ofast -xtarget=ultra -xarch=v9 */
 
-  #define SGI FALSE   /* 64-bit SGI R10000. Compile with cc -64 -Ofast */
+  #define SGI false   /* 64-bit SGI R10000. Compile with cc -64 -Ofast */
 
 
 #define ULTRA (SPARC || SGI)	/* Try on Sparc Ultra and MIPS R12000 */  	
-#define UNROLL TRUE		/* Best to set FALSE on Sun-Blade 1000,
-				   but TRUE on Ultra-80 */
+#define UNROLL true		/* Best to set false on Sun-Blade 1000,
+				   but true on Ultra-80 */
 
 /* Following are only relevant on IBM PCs */
 
-  #define LINUX TRUE		/* Set TRUE if running under Linux,
-				   FALSE otherwise. Relevant to choice
+  #define LINUX true		/* Set true if running under Linux,
+				   false otherwise. Relevant to choice
 				   of FASTTRY (see below). */
 
 /*
@@ -589,16 +589,10 @@ Compilation flags:
    and compiler.
    
    On an IBM PC which can execute MMX instructions it is best 
-   to set ASM = TRUE and use the assembler routines in irred.s
+   to set ASM = true and use the assembler routines in irred.s
    (version 3.10 or higher). 
    
 */
-
-#if IBMPC
- #define REGISTER			   /* Omit register declaration on PC */
-#else
- #define REGISTER register		   /* Include it on other machines */
-#endif
 
 #if UNROLL
   #define LIM (10*WLEN)
@@ -608,7 +602,7 @@ Compilation flags:
  #define LIM (2*WLEN) 
 #endif
 
-#define CLEAR TRUE			   /* To clear allocated space */
+#define CLEAR true			   /* To clear allocated space */
 
 /* Some constants */
 
@@ -697,8 +691,8 @@ double clockd(starta, first)
 clock_t *starta;
 BOOLEAN first;
 
-/* If first = TRUE, initialises *starta and returns zero.
-   If first = FALSE, returns time in sec since last call and updates starta. 
+/* If first = true, initialises *starta and returns zero.
+   If first = false, returns time in sec since last call and updates starta. 
    Note that this routine should be called at least each 4290 sec on
    IBM PC (under Linux) since CLOCKS_PER_SEC = 1000000 and 32-bit integer
    overflow may occur if called infrequently */
@@ -740,19 +734,19 @@ int size;
 
 BOOLEAN comparex(a)
 
-/* Returns TRUE if poly a of degree r-1 is x */
+/* Returns true if poly a of degree r-1 is x */
 
 ULONG *a;
   {
   ULONG mask1;
   int j;
-  if (a[0] != 2L) return(FALSE);
+  if (a[0] != 2L) return(false);
   for (j = q1-1; j > 0; j--) {
-    if (a[j] != 0) return(FALSE);
+    if (a[j] != 0) return(false);
     }
   mask1 = (ULONG)(~0L) >> (WLENM - ((r-1) & WLENM));  
-  if ((a[q1] & mask1) != 0) return(FALSE);
-  return(TRUE);
+  if ((a[q1] & mask1) != 0) return(false);
+  return(true);
   }
   
 #if UNROLL
@@ -768,8 +762,8 @@ int kt, shift;
 ULONG *prev;		/* Previous -> last value of new */
 
   {
-  REGISTER int j, shiftc;
-  REGISTER ULONG bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
+  int j, shiftc;
+  ULONG bj, bj2, bj3, bj4, old, new, old2, new2, old4, new4;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 3) != 3); j--) { /* Up to 3 iterations */
@@ -825,8 +819,8 @@ int kt, shift;
 ULONG *prev;		/* Previous -> last value of new */
 
   {
-  REGISTER int j, shiftc;
-  REGISTER ULONG bj, bj2, old, new, old2, new2;
+  int j, shiftc;
+  ULONG bj, bj2, old, new, old2, new2;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
@@ -870,8 +864,8 @@ int kt, shift;
 ULONG *prev;		/* Previous -> last value of new */
 
   {
-  REGISTER int j, shiftc;
-  REGISTER ULONG old, new;
+  int j, shiftc;
+  ULONG old, new;
   new = *prev;
   shiftc = WLEN - shift;
   for (j = kt; (j >= 0) && ((j & 1) == 0); j--) { /* One iteration if
@@ -908,8 +902,8 @@ ULONG *a;
 
   {
   ULONG new;
-  REGISTER ULONG temp;
-  REGISTER int j;
+  ULONG temp;
+  int j;
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
   int q1, q4;			/* ditto */
@@ -984,9 +978,9 @@ ULONG *a, *b;
 int r;
 
   {
-  REGISTER int j, s1, s2, q4;
-  REGISTER ULONG t, u, v, w, next1, next2, old, new;
-  REGISTER ULONG c0, c1, c2, c3, c4, c5;
+  int j, s1, s2, q4;
+  ULONG t, u, v, w, next1, next2, old, new;
+  ULONG c0, c1, c2, c3, c4, c5;
   int alpha;
 
   c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
@@ -1065,9 +1059,9 @@ ULONG *a, *b;
 int r;
 
   {
-  REGISTER int j, s1, s2;
-  REGISTER ULONG t, u, v, w, next1, next2, old, new;
-  REGISTER ULONG c0, c1, c2, c3, c4, c5;
+  int j, s1, s2;
+  ULONG t, u, v, w, next1, next2, old, new;
+  ULONG c0, c1, c2, c3, c4, c5;
   int q4, alpha;
 
   c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
@@ -1141,12 +1135,12 @@ char *fname, *flag;
   FILE *fp;
   clock_t openstart;
   double time;
-  time = clockd(&openstart, TRUE);	/* Independent timer here */
+  time = clockd(&openstart, true);	/* Independent timer here */
   
   for (;;) {
     fp = fopen(fname, flag);
     if (fp != NULL) break;
-    if ((time += clockd(&openstart, FALSE)) > TIMEOUT) {
+    if ((time += clockd(&openstart, false)) > TIMEOUT) {
       printf("Could not open %s after trying for %d seconds\n", 
 	fname, TIMEOUT);
       exit(ERROR);
@@ -1159,16 +1153,16 @@ BOOLEAN skips(skiplist, s)
 struct skip *skiplist;
 int s;
 
-/* Returns TRUE if s is in the skip list */
+/* Returns true if s is in the skip list */
 
   {
   struct skip *skiprec = skiplist;
   while (skiprec != NULL) {
     if ((skiprec->low <= s) && (s <= skiprec->high))
-      return(TRUE);
+      return(true);
     skiprec = skiprec->next;
     }  
-  return(FALSE);
+  return(false);
   }
 
 ULONG *fastmem(r, sodd, sizeah, CPUest)
@@ -1199,7 +1193,7 @@ double *CPUest;
   CPUworst = 0;
   CPUbest = 1;
   for (kt = nits; kt > 0; kt--) {
-    CPUtime = clockd(&cstart, TRUE);
+    CPUtime = clockd(&cstart, true);
     a0 = (ULONG *)mymalloc(3*sizeah*(int)sizeof(ULONG));
     savea0[kt] = a0; 	/* Save for later free or return */
     /* Changed 2 to 6 in version 3.15 to avoid out of bounds problem 
@@ -1220,7 +1214,7 @@ double *CPUest;
         a = a1;
         }
       if ((nkt & 0x7F) == 0)		/* Reduce overhead of clockd calls */
-        CPUtime += clockd(&cstart, FALSE);
+        CPUtime += clockd(&cstart, false);
       }
     CPUtime = CPUtime/(double)nkt;	/* Normalise CPU time */
     if ((nkt == 0) || (CPUtime < CPUbest)) {
@@ -1260,17 +1254,17 @@ char *str;
 BOOLEAN prime(n)
 int n;
 
-/* Returns TRUE if n is prime. Simple and not intended to be efficient. */
+/* Returns true if n is prime. Simple and not intended to be efficient. */
 
   {
   long j;
-  if (n <= 1) return(FALSE);		/* n < 2 */
-  if (n <= 3) return(TRUE);		/* n = 2 or 3 */
-  if ((n & 1) == 0) return(FALSE);	/* n even, not 2 */
+  if (n <= 1) return(false);		/* n < 2 */
+  if (n <= 3) return(true);		/* n = 2 or 3 */
+  if ((n & 1) == 0) return(false);	/* n even, not 2 */
   for (j = 3; j <= (n/j); j += 2) {	/* n > 3 */
-    if ((n%j) == 0) return(FALSE);
+    if ((n%j) == 0) return(false);
     }
-  return(TRUE);
+  return(true);
   }
 
 int main(argc, argv)
@@ -1318,8 +1312,8 @@ char *argv[];
   if (SPARC) printf("SPARC, ");
   if (SGI)   printf("SGI, ");
   if ((IBMPC + ALPHA + SPARC + SGI) != 1) {
-    printf("\nPlease set one machine type to TRUE, ");
-    printf("others to FALSE, and recompile\n");
+    printf("\nPlease set one machine type to true, ");
+    printf("others to false, and recompile\n");
     return(ERROR);
     }
   if (UNROLL) 
@@ -1331,10 +1325,10 @@ char *argv[];
 
   printf("\n");
       
-  CPUtime = clockd(&cstart, TRUE); 		/* Initialise timer */
+  CPUtime = clockd(&cstart, true); 		/* Initialise timer */
   a0 = NULL;
   skiplist = NULL;
-  found = FALSE;
+  found = false;
   r = 0;
   line[0] = '\0';
 
@@ -1347,7 +1341,7 @@ char *argv[];
         slow = shigh = 0;  
         if (sscanf(line, "%d %d", &slow, &shigh) < 2) break;
         if ((slow <= 0) || (slow > shigh)) break; /* >= changed to > 20010307 */
-#if FALSE				  	   /* Print skip list */
+#if false				  	   /* Print skip list */
         printf("Will skip s in [%d, %d]\n", slow, shigh);
 #endif      
         skiprec->low = slow;
@@ -1408,11 +1402,11 @@ char *argv[];
   while ((s1 != s2) && (! found) && 
     ((minutes == 0) || (CPUtotal < 60*minutes))) {
 
-    done = FALSE;
+    done = false;
     for (;;) {		/* Look for next s in range but not in skiplist */
       s = s1; 
       if (s1 == s2) {
-        done = TRUE;
+        done = true;
         break;
         }
       if (s1 < s2)
@@ -1437,7 +1431,7 @@ char *argv[];
         return(ERROR);
         }            
 
-    CPUtime += clockd(&cstart, FALSE);
+    CPUtime += clockd(&cstart, false);
     CPUtotal += CPUtime;		/* CPUtotal is for all (r, s) */
     CPUtime = 0;			/* CPUtime is for current (r, s) */
     CPUtime1 = 0;			/* CPUtime1 is for current sieving */
@@ -1465,14 +1459,14 @@ char *argv[];
 
     if (a0 == NULL) {	/* Allocate space for a, b, p and q arrays */
 
-      CPUtime += clockd(&cstart, FALSE);
+      CPUtime += clockd(&cstart, false);
       CPUtotal += CPUtime;
       CPUtime = 0;			/* Don't count in non-sieving time */
 
       a0 = fastmem(r, sodd, sizeah, &CPUest); /* Find a "good" a0 on the heap 
       					   	 and estimate CPU time */
       					   	 
-      CPUtime += clockd(&cstart, FALSE);/* Count call to fastmem in total */
+      CPUtime += clockd(&cstart, false);/* Count call to fastmem in total */
       CPUtotal += CPUtime;		/* but not in sieving time */
       CPUtime = 0;		
 
@@ -1491,9 +1485,9 @@ char *argv[];
       a = a1;		/* Will cycle through a1, a0 */
       }
 
-    g = TRUE;
+    g = true;
 
-    CPUtime += clockd(&cstart, FALSE);
+    CPUtime += clockd(&cstart, false);
 
     if (g) { /* Phase 1 sieve no longer done */
 
@@ -1514,13 +1508,13 @@ char *argv[];
         }
 
       if ((k & 0x7FFFL) == 0) { 	 	/* Avoid timer overflow by */
-        CPUtime += clockd(&cstart, FALSE);	/* calling clockd sometimes */
+        CPUtime += clockd(&cstart, false);	/* calling clockd sometimes */
         }
         
 	if (! g) break;  
         }
 
-      CPUtime += clockd(&cstart, FALSE);
+      CPUtime += clockd(&cstart, false);
 
       if (g) {       
        if (comparex(a)) {
