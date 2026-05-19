@@ -869,7 +869,7 @@ uint64_t *prev;		/* Previous -> last value of new */
 
 #endif
 
-void reducep(a)	
+void reducep(uint64_t *a)	
 
 /* Reduces implicit square of polynomial a of degree < r "in place"
    given x^r = x^sodd + 1 (mod 2), result left in scrambled order
@@ -881,15 +881,13 @@ void reducep(a)
    
    RPB, 20000815. */
 
-uint64_t *a;
-
   {
   uint64_t new;
   uint64_t temp;
   int j;
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
-  int q1, q4;			/* ditto */
+  int q11, q4;			/* ditto */
   uint64_t mask1, mask2;		/* ditto */
   
   alpha = r >> 1;		/* alpha = (r-1)/2 */
@@ -897,7 +895,7 @@ uint64_t *a;
   deltaw = delta >> WD;		/* deltaw = delta div WLEN */
   deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
   deltaqc = WLEN - deltaq;	/* Special case if deltaq is zero */
-  q1 = (r-1) >> WD;		/* q1 = (r-1) div WLEN */
+  q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
   q4 = alpha >> WD;		/* q4 = alpha div WLEN */
   
   mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));
@@ -909,21 +907,21 @@ uint64_t *a;
 
   /* To be safe, mask any high bits of a which are irrelevant */
 
-  a[q1] &= mask1;
-  a[q1+1] = 0;			/* In case reducemx called */
-  a[q1+2] = 0;			/* Ditto */
+  a[q11] &= mask1;
+  a[q11+1] = 0;			/* In case reducemx called */
+  a[q11+2] = 0;			/* Ditto */
   new = 0;			/* Assumed by reducemx */
   
   if (deltaq == 0) {		/* Special case deltaqc == WLEN */
     
-    for (j = q1; j > q4; j--)	/* C reducer does not work here */
+    for (j = q11; j > q4; j--)	/* C reducer does not work here */
       a[j-deltaw] ^= a[j];
     a[q4-deltaw] ^= a[q4] & mask2;
     }
 
   else {			/* Usual case, deltaqc < WLEN */
 
-    reducer (a+q4+1, a+q4+1-deltaw, q1-q4-1, deltaq, &new);
+    reducer (a+q4+1, a+q4+1-deltaw, q11-q4-1, deltaq, &new);
 
     /* The last two iterations are special as need to mask some bits */
 
