@@ -805,7 +805,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
 
   {
   int j, s1, s2, q4;
-  uint64_t t, u, v, w, next1, next2, old, new;
+  uint64_t t, u, v, w;
   uint64_t c0, c1, c2, c3, c4, c5;
   int alpha;
 
@@ -882,7 +882,7 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
 
   {
   int j, s1, s2;
-  uint64_t t, u, v, w, next1, next2, old, new;
+  uint64_t t, u, v, w;
   uint64_t c0, c1, c2, c3, c4, c5;
   int q4, alpha;
 
