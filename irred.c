@@ -221,6 +221,7 @@ References:
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>   		/* For clock */
+#include <string.h>     /* For memset */
 
 /* VERBOSE, CONTINUE, GNU determine program behaviour */
 
@@ -732,9 +733,6 @@ int size;
 
   {
   char *ptr;
-#if CLEAR
-  int j;
-#endif
   space += size;
   ptr = (char *)malloc(size);
   if (ptr == NULL) {
@@ -742,7 +740,7 @@ int size;
     exit(ERROR);
     }
 #if CLEAR
-  for (j = 0; j < size; j++) ptr[j] = (char)0;
+  memset(ptr, 0, size);
 #endif
   return(ptr);
   }
@@ -826,24 +824,20 @@ bool comparex(uint64_t *a)
 /* Returns true if poly a of degree r-1 is x */
 
   {
-  int j;
-  if (a[0] != 2L) return(false);
-  for (j = q1-1; j > 0; j--) {
-    if (a[j] != 0) return(false);
+  if (a[0] != 2UL) return(false);
+  for (int j = q1-1; j > 0; j--) {
+    if (a[j] != 0UL) return(false);
     }
   if ((a[q1] & mask1) != 0) return(false);
   return(true);
   }
   
-void setupx(a)
+void setupx(uint64_t *a)
 
 /* Sets up a = x (polynomial of degree r-1, all mod 2) */
 
-uint64_t *a;
   {
-  int j;
-  for (j = q1; j > 0; j--)
-    a[j] = 0UL;
+  memset(&a[1], 0, q1 * sizeof(uint64_t));
   a[0] = 2UL;			/* 0...010 represents x */
   }
 
