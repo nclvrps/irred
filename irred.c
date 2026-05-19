@@ -631,11 +631,6 @@ Compilation flags:
 
 /* Useful macro definitions */
 
-#define ABS(i)          (((i)>0)   ? (i) : (-(i)))
-#define MAX(i,j)        (((i)>(j)) ? (i) : (j))
-#define MIN(i,j)        (((i)<(j)) ? (i) : (j))
-#define RDUP(i,j)       ((((i)+(j)-1)/(j))*(j))
-#define CEIL(i,j)       (((i)+(j)-1)/(j))
 #define ODD(i)		((i)&1)
 
 #define WLEN  (64)	/* Bits in a long word, always assume 64-bit */
@@ -951,8 +946,8 @@ uint64_t *a;
   {
   int j;
   for (j = q1; j > 0; j--)
-    a[j] = 0L;
-  a[0] = 2L;			/* 0...010 represents x */
+    a[j] = 0UL;
+  a[0] = 2UL;			/* 0...010 represents x */
   }
 
 void interlvf(a, b, r)
@@ -975,12 +970,12 @@ int r;
   uint64_t c0, c1, c2, c3, c4, c5;
   int alpha;
 
-  c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
-  c1 = 0x0000FFFF0000FFFFL;
-  c2 = 0x00FF00FF00FF00FFL;
-  c3 = 0x0F0F0F0F0F0F0F0FL;
-  c4 = 0x3333333333333333L;
-  c5 = 0x2222222222222222L;
+  c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
+  c1 = 0x0000FFFF0000FFFFUL;
+  c2 = 0x00FF00FF00FF00FFUL;
+  c3 = 0x0F0F0F0F0F0F0F0FUL;
+  c4 = 0x3333333333333333UL;
+  c5 = 0x2222222222222222UL;
 
   alpha = r >> 1;			/* alpha = (r-1)/2 */
   q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
@@ -1056,12 +1051,12 @@ int r;
   uint64_t c0, c1, c2, c3, c4, c5;
   int q4, alpha;
 
-  c0 = 0x00000000FFFFFFFFL;		/* Some 64-bit constants */
-  c1 = 0x0000FFFF0000FFFFL;
-  c2 = 0x00FF00FF00FF00FFL;
-  c3 = 0x0F0F0F0F0F0F0F0FL;
-  c4 = 0x3333333333333333L;
-  c5 = 0x2222222222222222L;
+  c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
+  c1 = 0x0000FFFF0000FFFFUL;
+  c2 = 0x00FF00FF00FF00FFUL;
+  c3 = 0x0F0F0F0F0F0F0F0FUL;
+  c4 = 0x3333333333333333UL;
+  c5 = 0x2222222222222222UL;
 
   alpha = r >> 1;			/* alpha = (r-1)/2 */
   q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
