@@ -792,7 +792,7 @@ uint64_t *a;
   a[0] = 2UL;			/* 0...010 represents x */
   }
 
-void interlvf(a, b, r)
+void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
 
 /* 64-bit version of interleave. Loop index runs up.
 
@@ -802,9 +802,6 @@ void interlvf(a, b, r)
    Work is about (1.load + 1.store + 32.ops)r/WLEN.
 
    RPB, 20000907 */
-
-uint64_t *a, *b;
-int r;
 
   {
   int j, s1, s2, q4;
@@ -871,7 +868,7 @@ int r;
     }
   }
   
-void interlvr(a, b, r)
+void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
 
 /* 64-bit version of interleave. Loop index runs down (compare interlvf).
 
@@ -883,9 +880,6 @@ void interlvr(a, b, r)
    Because of a loop optimisation, it should be valid to access a[-1].
 
    RPB, 20000907 */
-
-uint64_t *a, *b;
-int r;
 
   {
   int j, s1, s2;
