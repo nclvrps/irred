@@ -715,26 +715,9 @@ int size;
   return(ptr);
   }
 
-bool comparex(a)
-
-/* Returns true if poly a of degree r-1 is x */
-
-uint64_t *a;
-  {
-  uint64_t mask1;
-  int j;
-  if (a[0] != 2L) return(false);
-  for (j = q1-1; j > 0; j--) {
-    if (a[j] != 0) return(false);
-    }
-  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));  
-  if ((a[q1] & mask1) != 0) return(false);
-  return(true);
-  }
-  
 #if UNROLL
 
-void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
+void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
 
 /* 4-way unrolled version of reducer, optimised for Sparc Ultra-80.
    Note that LIM must be at least 10*WLEN. 
@@ -790,7 +773,7 @@ void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
 
 #elif ULTRA
 
-void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
+void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
 
 /* Unrolled version of reducer, good on Sparc Ultra-80 and R12000.
    Called by relprime and reducep. Assumes 0 < shift < WLEN. */
@@ -832,7 +815,7 @@ void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
 
 #else			
 
-void reducer(uint64_t *a, uint64_t *b, int kt, int shift, uint64_t *prev)
+void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int kt, int shift, uint64_t *prev)
 
 /* Unrolled version.
    Simplified version of reducea, called by relprime and reducep.
@@ -910,6 +893,20 @@ void reducep(uint64_t *a)
     a[q4-deltaw]   ^= (new >> deltaq) | (temp << deltaqc);
     a[q4-deltaw-1] ^=  new << deltaqc;
     }
+  }
+  
+bool comparex(uint64_t *a)
+
+/* Returns true if poly a of degree r-1 is x */
+
+  {
+  int j;
+  if (a[0] != 2L) return(false);
+  for (j = q1-1; j > 0; j--) {
+    if (a[j] != 0) return(false);
+    }
+  if ((a[q1] & mask1) != 0) return(false);
+  return(true);
   }
   
 void setupx(a)
@@ -1462,10 +1459,10 @@ char *argv[];
   q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
   q4 = alpha >> WD;		/* q4 = alpha div WLEN */
   
-  mask1 = (uint64_t)(~0L) >> (WLENM - ((r-1) & WLENM));
+  mask1 = UINT64_MAX >> (WLENM - ((r-1) & WLENM));
   				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
   				   zero bits in high positions */
-  mask2 = (~1L) << (alpha & WLENM);
+  mask2 = (~(uint64_t)1) << (alpha & WLENM);
   				/* mask2 has (alpha mod WLEN) + 1 zero bits
   				   in low positions */
 
