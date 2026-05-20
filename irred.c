@@ -271,7 +271,7 @@ struct skip {
 
 /* Global variables */
 
-int r, q1, sodd;			/* Main parameter is r */
+int r, q1, s, sodd;			/* Main parameter is r */
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
   int q11, q4;			/* ditto */
@@ -303,6 +303,7 @@ void initialize_r_s_globals(void) {
   s2_x = WLENM - s1_x;			/* In [0, WLEN) */
 
     // these depend on r and s (sodd = either s or r-s)
+  sodd = ODD(s) ? s: r-s;		/* whichever of s, r-s is odd */
   delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
   deltaw = delta >> WD;		/* deltaw = delta div WLEN */
   deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
@@ -355,6 +356,7 @@ void *mymalloc(int size)
   return ptr;
   }
 
+static inline __attribute__((always_inline))
 void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
              int kt, int shift, uint64_t *prev)
 {
@@ -369,7 +371,8 @@ void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
     *prev = newer;
 }
   
-static void xor_shift_zero(uint64_t * __restrict__ dst,
+static inline __attribute__((always_inline))
+void xor_shift_zero(uint64_t * __restrict__ dst,
                             const uint64_t * __restrict__ src,
                             int count)
 /* XORs count+1 elements: dst[j] ^= src[j] for j = 0..count.
@@ -560,7 +563,7 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b)
     b[2*j]   = t | (v << 1);
     }
   }
-  
+
 FILE *myfopen(const char *fname, const char *flag)
 
 /* Attempts to open file fname. If not successful at first, keeps trying
@@ -693,7 +696,7 @@ int main(int argc, char *argv[])
   double CPUtotal1 = 0;
   int minutes = 0;		/* minutes before stopping */
   int k, rv;
-  int s = -1;
+  s = -1;
   int s1 = 0, s2 = 0;
   int sizeah, sizep;
   int skt = 0;
@@ -830,7 +833,8 @@ int main(int argc, char *argv[])
       }   
     if (done) break;  
 
-    sodd = ODD(s) ? s: r-s;		/* whichever of s, r-s is odd */
+    /* Set up global variables depending only on r, or on r and s */
+    initialize_r_s_globals();
 
     if (verbose) {
     printf ("\nr %d, s %d, r-s %d\n", r, s, r-s);
@@ -849,9 +853,6 @@ int main(int argc, char *argv[])
     CPUtime = 0;			/* CPUtime is for current (r, s) */
     CPUtime1 = 0;			/* CPUtime1 is for current sieving */
     skt++;
-
-    /* Set up global variables depending only on r, or on r and s */
-    initialize_r_s_globals();
 
     /* These local variables depend only on r */
 
