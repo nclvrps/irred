@@ -271,7 +271,7 @@ struct skip {
 
 /* Global variables */
 
-int r, q1, s, sodd;			/* Main parameter is r */
+  int r, q1, s, sodd;			/* Main parameter is r */
   int alpha, delta;		/* Could be global */
   int deltaw, deltaq, deltaqc;	/* ditto */
   int q11, q4;			/* ditto */
@@ -587,7 +587,7 @@ FILE *myfopen(const char *fname, const char *flag)
   return fp;
   }
 
-bool skips(struct skip *skiplist, int s)
+bool skips(struct skip *skiplist)
 
 /* Returns true if s is in the skip list */
 
@@ -695,7 +695,6 @@ int main(int argc, char *argv[])
   double CPUtotal = 0;
   double CPUtotal1 = 0;
   int minutes = 0;		/* minutes before stopping */
-  int k, rv;
   s = -1;
   int s1 = 0, s2 = 0;
   int sizeah, sizep;
@@ -779,7 +778,7 @@ int main(int argc, char *argv[])
     printf ("r, s1, s2 ?\n"); 	  	  /* Interactive input */
     fgets(line, MC, stdin);
     }
-  rv = sscanf(line, "%d %d %d", &r, &s1, &s2);
+  int rv = sscanf(line, "%d %d %d", &r, &s1, &s2);
   if (rv < 3) s2 = 0;
   if (rv < 2) s1 = 0;
   if (rv < 1) r = 0;
@@ -829,7 +828,7 @@ int main(int argc, char *argv[])
         s1++;
       else
         s1--;
-      if (! skips(skiplist, s)) break;		  
+      if (! skips(skiplist)) break;
       }   
     if (done) break;  
 
@@ -899,7 +898,7 @@ int main(int argc, char *argv[])
 
       setupx (a);
 
-      for (k = 0; g && (k < r); k++) {
+      for (int k = 0; g && (k < r); k++) {
 
       reducep(a);			/* Reduce (square of) a */
 
