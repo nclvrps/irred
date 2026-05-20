@@ -648,9 +648,6 @@ Compilation flags:
 				   Assume that CPUTOL is much less than 
 				   CPUTEST. */
 
-#define ERROR 1
-#define OK 0
-
 /* Useful macro definitions */
 
 #define ODD(i)		((i)&1)
@@ -687,46 +684,36 @@ unsigned int space = 0;				/* Counts bytes allocated by malloc */
 
 /* Routines start here */
 
-double clockd(starta, first)
-clock_t *starta;
-bool first;
+double clockd(clock_t *starta, bool first)
 
 /* If first = true, initialises *starta and returns zero.
-   If first = false, returns time in sec since last call and updates starta. 
-   Note that this routine should be called at least each 4290 sec on
-   IBM PC (under Linux) since CLOCKS_PER_SEC = 1000000 and 32-bit integer
-   overflow may occur if called infrequently */
+   If first = false, returns time in sec since last call and updates starta. */ 
   
   {
-  clock_t stop;
-  uint64_t diff;
-  stop = (clock_t) clock();
+  clock_t stop = clock();
   clockcalls++;
   if (first) *starta = stop;
-  diff = (uint64_t)(stop - *starta);	/* May wrap around in 2^32/10^6 sec */
+  clock_t diff = stop - *starta;
   *starta = stop;
-  return ((double)diff*((double)1/(double)CLOCKS_PER_SEC));
+  return (double)diff/CLOCKS_PER_SEC;
   }
 
-
-char *mymalloc(size)
-int size;
+void *mymalloc(int size)
 
 /* Same as malloc but gives error exit if can not allocate space.
    Optionally clears space allocated. */
 
   {
-  char *ptr;
   space += size;
-  ptr = (char *)malloc(size);
+  void *ptr = malloc(size);
   if (ptr == NULL) {
-    printf("malloc unable to allocate %d bytes\n", space);
-    exit(ERROR);
+    printf("malloc unable to allocate %u bytes\n", space);
+    exit(EXIT_FAILURE);
     }
 #if CLEAR
   memset(ptr, 0, size);
 #endif
-  return(ptr);
+  return ptr;
   }
 
 void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
@@ -734,9 +721,8 @@ void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
 {
     const int shiftc = WLEN - shift;
     uint64_t new = *prev;
-    int j;
 
-    for (j = kt; j >= 0; j--) {
+    for (int j = kt; j >= 0; j--) {
         uint64_t old = new;
         new = a[j];
         b[j] ^= (new >> shift) | (old << shiftc);
@@ -756,8 +742,7 @@ static void xor_shift_zero(uint64_t * __restrict__ dst,
    dst and src are guaranteed non-overlapping (caller ensures this
    via r - sodd >= LIM). */
 {
-    int j;
-    for (j = count; j >= 0; j--)
+    for (int j = count; j >= 0; j--)
         dst[j] ^= src[j];
 }
 
@@ -774,16 +759,13 @@ void reducep(uint64_t *a)
    RPB, 20000815. */
 
   {
-  uint64_t new;
-  uint64_t temp;
-  int j;
 
   /* To be safe, mask any high bits of a which are irrelevant */
 
   a[q11] &= mask1;
   a[q11+1] = 0;			/* In case reducemx called */
   a[q11+2] = 0;			/* Ditto */
-  new = 0;			/* Assumed by reducemx */
+  uint64_t new = 0;			/* Assumed by reducemx */
   
   if (deltaq == 0) {		/* Special case deltaqc == WLEN */
     xor_shift_zero(a + q4 - deltaw, a + q4, q1 - q4 - 1); 
@@ -796,7 +778,7 @@ void reducep(uint64_t *a)
 
     /* The last two iterations are special as need to mask some bits */
 
-    temp = new;
+    uint64_t temp = new;
     new = a[q4] & mask2;
     a[q4-deltaw]   ^= (new >> deltaq) | (temp << deltaqc);
     a[q4-deltaw-1] ^=  new << deltaqc;
@@ -808,12 +790,12 @@ bool comparex(uint64_t *a)
 /* Returns true if poly a of degree r-1 is x */
 
   {
-  if (a[0] != 2UL) return(false);
+  if (a[0] != 2UL) return false;
   for (int j = q1-1; j > 0; j--) {
-    if (a[j] != 0UL) return(false);
+    if (a[j] != 0UL) return false;
     }
-  if ((a[q1] & mask1) != 0) return(false);
-  return(true);
+  if ((a[q1] & mask1) != 0) return false;
+  return true;
   }
   
 void setupx(uint64_t *a)
@@ -837,7 +819,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int j, s1, s2, q4;
+  int s1, s2, q4;
   uint64_t t, u, v, w;
   uint64_t c0, c1, c2, c3, c4, c5;
   int alpha;
@@ -854,7 +836,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
   s2 = WLENM - s1;			/* In [0, WLEN) */
   
-  for (j = 0; j <= q4; j++) {
+  for (int j = 0; j <= q4; j++) {
 
         uint64_t lo     = a[j];
         uint64_t hi_raw = a[j + q4];
@@ -914,7 +896,7 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int j, s1, s2;
+  int s1, s2;
   uint64_t t, u, v, w;
   uint64_t c0, c1, c2, c3, c4, c5;
   int q4, alpha;
@@ -931,7 +913,7 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
   s2 = WLENM - s1;			/* In [0, WLEN) */
   
-  for (j = q4; j >= 0; j--) {
+  for (int j = q4; j >= 0; j--) {
 
         uint64_t lo      = a[j];
         uint64_t hi_cur  = a[j + q4];
@@ -977,35 +959,30 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
     }
   }
   
-FILE *myfopen(fname, flag)
+FILE *myfopen(const char *fname, const char *flag)
 
 /* Attempts to open file fname. If not successful at first, keeps trying
    for TIMEOUT seconds, then error exits.
 */
    
-char *fname, *flag;
-
   {
   FILE *fp;
   clock_t openstart;
-  double time;
-  time = clockd(&openstart, true);	/* Independent timer here */
+  double time = clockd(&openstart, true);	/* Independent timer here */
   
   for (;;) {
     fp = fopen(fname, flag);
     if (fp != NULL) break;
-    if ((time += clockd(&openstart, false)) > TIMEOUT) {
+    if ((time += clockd(&openstart, false)) > (double)TIMEOUT) {
       printf("Could not open %s after trying for %d seconds\n", 
 	fname, TIMEOUT);
-      exit(ERROR);
+      exit(EXIT_FAILURE);
       }
     }
-  return(fp);
+  return fp;
   }
 
-bool skips(skiplist, s)
-struct skip *skiplist;
-int s;
+bool skips(struct skip *skiplist, int s)
 
 /* Returns true if s is in the skip list */
 
@@ -1013,16 +990,13 @@ int s;
   struct skip *skiprec = skiplist;
   while (skiprec != NULL) {
     if ((skiprec->low <= s) && (s <= skiprec->high))
-      return(true);
+      return true;
     skiprec = skiprec->next;
     }  
-  return(false);
+  return false;
   }
 
-uint64_t *fastmem(r, sodd, sizeah, CPUest)
-
-int r, sodd, sizeah;
-double *CPUest;
+uint64_t *fastmem(int r, int sodd, int sizeah, double *CPUest)
 
 /* Selects and returns a "good" pointer a0 by performing some timing runs  -
    it is not obvious why this works (perhaps due to real <-> virtual page
@@ -1094,36 +1068,22 @@ double *CPUest;
   return savea0[bestkt];		/* and the "best" pointer */
   }
 
-void hex8(n, str)
-unsigned int n;
-char *str;
-
-/* Return str as 8-character hex string representing n,
-   with leading zeros rather than blanks */
-
-  {
-  snprintf(str, 8+1, "%08x", n);
-  }
-
-bool prime(n)
-int n;
+bool prime(int n)
 
 /* Returns true if n is prime. Simple and not intended to be efficient. */
 
   {
   long j;
-  if (n <= 1) return(false);		/* n < 2 */
-  if (n <= 3) return(true);		/* n = 2 or 3 */
-  if ((n & 1) == 0) return(false);	/* n even, not 2 */
+  if (n <= 1) return false;		/* n < 2 */
+  if (n <= 3) return true;		/* n = 2 or 3 */
+  if ((n & 1) == 0) return false;	/* n even, not 2 */
   for (j = 3; j <= (n/j); j += 2) {	/* n > 3 */
-    if ((n%j) == 0) return(false);
+    if ((n%j) == 0) return false;
     }
-  return(true);
+  return true;
   }
 
-int main(argc, argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
   {
   FILE *fp;
   double CPUtime1, CPUlast, CPUest;
@@ -1135,7 +1095,6 @@ char *argv[];
   int s1 = 0, s2 = 0;
   int n, sizeah, sizep;
   int skt = 0;
-  unsigned int temp;
   uint64_t *a;			/* For polynomial of degree (r-1) */
   uint64_t *a0, *a1;		/* a = a0 or a1 */
   uint64_t *p, *q;			/* For sieving */
@@ -1150,7 +1109,7 @@ char *argv[];
   int slow, shigh;
   bool done, found, g, swan;
   
-  printf("\nThis is irred version 3.15\n");	  /* Date 20030328 */
+  printf("\nThis is irred (forked github.com/nclvrps/irred version 0.11)\n");	  /* Date 20260520 */
   
 #if GNU
   printf("\nCopyright (C) 2003 R. P. Brent.\n");
@@ -1216,7 +1175,7 @@ char *argv[];
     }	
     					  /* Searches up from initial s1
     					     to s2-1 (or down to s2+1) */ 
-  if (s1 < 0) return(OK);
+  if (s1 < 0) exit(EXIT_SUCCESS);
   if (s1 >= r) s1 = r/2;		  /* Reasonable defaults */
   if (s2 < 0) s2 = 0;
   if (s2 > r) s2 = (s1 > r/2) ? r - 64: r/2 + 1;  
@@ -1268,7 +1227,7 @@ char *argv[];
         printf ("Illegal parameters\n");
         if (! ODD(s))
           printf("For small even s try version 1.35 or earlier\n");
-        return(ERROR);
+        exit(EXIT_FAILURE);
         }            
 
     CPUtime += clockd(&cstart, false);
@@ -1387,9 +1346,7 @@ char *argv[];
         }
       else {
 
-	temp = (unsigned int)((a[0]<<32)>>32);
-
-        hex8(temp, str8);
+        snprintf(str8, 8+1, "%08x", (unsigned int)((a[0]<<32)>>32));
 #if VERBOSE
         printf("Not irreducible/primitive, low word %s (hex)\n", str8); 
 #endif
@@ -1465,5 +1422,5 @@ char *argv[];
   printf("%d clock calls\n", clockcalls);
   if (syscalls > 0) printf("%d system/sleep calls\n", syscalls);
 #endif
-  return(OK);				/* Normal exit */
+  exit(EXIT_SUCCESS);
   }
