@@ -601,7 +601,7 @@ bool skips(struct skip *skiplist, int s)
   return false;
   }
 
-uint64_t *fastmem(int r, int sizeah, double *CPUest)
+uint64_t *fastmem(int sizeah, double *CPUest)
 
 /* Selects and returns a "good" pointer a0 by performing some timing runs  -
    it is not obvious why this works (perhaps due to real <-> virtual page
@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
       CPUtotal += CPUtime;
       CPUtime = 0;			/* Don't count in non-sieving time */
 
-      a0 = fastmem(r, sizeah, &CPUest); /* Find a "good" a0 on the heap 
+      a0 = fastmem(sizeah, &CPUest); /* Find a "good" a0 on the heap 
       					   	 and estimate CPU time */
       					   	 
       CPUtime += clockd(&cstart, false);/* Count call to fastmem in total */
