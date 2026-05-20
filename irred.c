@@ -120,9 +120,10 @@ Restrictions, Assumptions and Limitations:
    can not complete the primitivity test without factoring 2^r-1.)
 
 Usage:
-   	  irred restart-file log-file time-limit skip-file
+   	  irred [-v] restart-file log-file time-limit skip-file
    	  					(all arguments optional)
 Arguments:
+          -v flag for VERBOSE output
 
           A restart file can be specified as first command line argument.
           If no file is specified, input data is read from stdin.
@@ -204,9 +205,10 @@ References:
 #include <time.h>   		/* For clock */
 #include <string.h>     /* For memset */
 
-/* VERBOSE, CONTINUE, GNU determine program behaviour */
+/* verbose, CONTINUE, GNU determine program behaviour */
 
-#define VERBOSE true		/* If true give more informative output */
+/* this was formerly #define VERBOSE true */
+bool verbose = false;   /* command-line option */
 
 #define CONTINUE false		/* If true, continue after finding a
                                    primitive trinomial (useful for small r) */
@@ -653,13 +655,13 @@ uint64_t *fastmem(int r, int sizeah, double *CPUest)
       free(savea0[kt]);
     }
   CPUtime = ((double)r)*CPUtime;	/* Estimate of overall time */
-#if VERBOSE
+  if (verbose) {
   if (nits > 1)
     printf("Worst/best ratio in fastmem %1.2f\n", CPUworst/CPUbest);
   printf("Estimated CPU time (not sieving) %2.2f sec = %2.2f r^2 nsec\n\n",
   	CPUtime, 1.0e9*CPUtime/r/r);
   fflush(stdout); 	
-#endif
+  }
   *CPUest = CPUtime;			/* Return CPU time estimate */
   return savea0[bestkt];		/* and the "best" pointer */
   }
@@ -713,11 +715,6 @@ int main(int argc, char *argv[])
   printf("See http://www.gnu.org/copyleft/gpl.html for further details.\n\n");
 #endif
 
-  printf("Options ");				  /* Print relevant options */
-  if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
-
-  printf("\n");
-      
   CPUtime = clockd(&cstart, true); 		/* Initialise timer */
   a0 = NULL;
   skiplist = NULL;
@@ -725,6 +722,22 @@ int main(int argc, char *argv[])
   r = 0;
   line[0] = '\0';
 
+  verbose = false;
+  while (argc > 1 && argv[1][0] == '-')
+    {
+      if (strcmp (argv[1], "-v") == 0)
+        {
+          verbose = true;
+          argc --;
+          argv ++;
+        }
+    }
+
+  printf("Options ");				  /* Print relevant options */
+  if (FASTTRY > 0) printf("FASTTRY = %d, ", FASTTRY);
+
+  printf("\n");
+      
   if (argc > 4) {				/* Process skip file */	
     if ((fp = fopen(argv[4], "r")) == NULL)
       printf("Warning - can not open skip file\n"); 
@@ -812,9 +825,9 @@ int main(int argc, char *argv[])
 
     sodd = ODD(s) ? s: r-s;		/* whichever of s, r-s is odd */
 
-#if VERBOSE       
+    if (verbose) {
     printf ("\nr %d, s %d, r-s %d\n", r, s, r-s);
-#endif
+    }
 
     if ((sodd <= 0) || (r <= sodd) || 
       (! ODD(r)) || (! ODD(sodd)) || ((r-sodd) < LIM)) {
@@ -934,9 +947,9 @@ int main(int argc, char *argv[])
       else {
 
         snprintf(str8, 8+1, "%08x", (unsigned int)((a[0]<<32)>>32));
-#if VERBOSE
+        if (verbose) {
         printf("Not irreducible/primitive, low word %s (hex)\n", str8); 
-#endif
+        }
         if (argc > 2) {
           fp = myfopen(argv[2], "a");
           if (s == sodd)
@@ -955,7 +968,7 @@ int main(int argc, char *argv[])
         }
       }
       
-#if VERBOSE        
+      if (verbose) {
       if (CPUtime > CPUTOL) {  
         printf("CPU time (not sieving) %.2f sec = ", CPUtime);
         printf("%2.2f r^2 nsec\n", 1.0e9*CPUtime/r/r);
@@ -966,11 +979,11 @@ int main(int argc, char *argv[])
           printf(", ratio %2.0f", CPUtime/CPUtime1);
         printf("\n");   
         }
-#endif
+        }
       CPUtotal1 += CPUtime1;  
       CPUtotal += CPUtime;
       CPUtime = 0;
-#if VERBOSE
+      if (verbose) {
       if (CPUtotal > CPUTOL) {
         printf("\nOverall time %.2f sec = ", CPUtotal);
         printf("%.4f sec per trinomial\n", CPUtotal/skt);
@@ -980,7 +993,7 @@ int main(int argc, char *argv[])
 	printf("\n");
         }
       fflush(stdout);
-#endif        
+      }
       }
   
     /* Try again until irreducible/primitive trinomial found
@@ -1003,11 +1016,11 @@ int main(int argc, char *argv[])
 
   if ((! found) && (s != -1))
     printf("Searched to %d\n", s);
-#if VERBOSE
+  if (verbose) {
   printf("Working set after sieving about %d bytes\n", (3*r)>>4);
   printf("Dynamic storage allocation %d bytes\n", space);
   printf("%d clock calls\n", clockcalls);
   if (syscalls > 0) printf("%d system/sleep calls\n", syscalls);
-#endif
+  }
   return EXIT_SUCCESS;
   }
