@@ -181,7 +181,7 @@ References:
         S. W. Golomb, Shift register sequences, Holden-Day, San Francisco,
         1967. Revised edition, Aegean Park Press, 1982.
 
-   	J. W. Heringa, H. W. J. Bl\"ote and A. Compagner, New primitive 
+   	J. W. Heringa, H. W. J. Blöte and A. Compagner, New primitive 
         trinomials of Mersenne-exponent degrees for random-number generation,
         Int. Journal of Modern Physics C 3 (1992), 561-564.
 
@@ -320,14 +320,14 @@ void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
              int kt, int shift, uint64_t *prev)
 {
     const int shiftc = WLEN - shift;
-    uint64_t new = *prev;
+    uint64_t newer = *prev;
 
     for (int j = kt; j >= 0; j--) {
-        uint64_t old = new;
-        new = a[j];
-        b[j] ^= (new >> shift) | (old << shiftc);
+        uint64_t older = newer;
+        newer = a[j];
+        b[j] ^= (newer >> shift) | (older << shiftc);
     }
-    *prev = new;
+    *prev = newer;
 }
 
   int alpha, delta;		/* Could be global */
@@ -365,7 +365,7 @@ void reducep(uint64_t *a)
   a[q11] &= mask1;
   a[q11+1] = 0;			/* In case reducemx called */
   a[q11+2] = 0;			/* Ditto */
-  uint64_t new = 0;			/* Assumed by reducemx */
+  uint64_t newer = 0;			/* Assumed by reducemx */
   
   if (deltaq == 0) {		/* Special case deltaqc == WLEN */
     xor_shift_zero(a + q4 - deltaw, a + q4, q1 - q4 - 1); 
@@ -374,14 +374,14 @@ void reducep(uint64_t *a)
 
   else {			/* Usual case, deltaqc < WLEN */
 
-    reducer (a+q4+1, a+q4+1-deltaw, q11-q4-1, deltaq, &new);
+    reducer (a+q4+1, a+q4+1-deltaw, q11-q4-1, deltaq, &newer);
 
     /* The last two iterations are special as need to mask some bits */
 
-    uint64_t temp = new;
-    new = a[q4] & mask2;
-    a[q4-deltaw]   ^= (new >> deltaq) | (temp << deltaqc);
-    a[q4-deltaw-1] ^=  new << deltaqc;
+    uint64_t temp = newer;
+    newer = a[q4] & mask2;
+    a[q4-deltaw]   ^= (newer >> deltaq) | (temp << deltaqc);
+    a[q4-deltaw-1] ^=  newer << deltaqc;
     }
   }
   
@@ -409,7 +409,7 @@ void setupx(uint64_t *a)
 
 void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
 
-/* 64-bit version of interleave. Loop index runs up.
+/* 64-bit version of interleave. Loop index runs up (compare interlvr).
 
    If bits 0, 2, 4, ... , r-3, r-1, 1, 3, 5, ..., r-4, r-2 in a,
    moves them to b in correct order.
@@ -419,9 +419,8 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int s1, s2, q4;
+  int s1, s2, q4, alpha;
   uint64_t c0, c1, c2, c3, c4, c5;
-  int alpha;
 
   c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
   c1 = 0x0000FFFF0000FFFFUL;
@@ -438,7 +437,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   for (int j = 0; j <= q4; j++) {
 
         uint64_t lo     = a[j];
-        uint64_t hi_raw = a[j + q4];
+        uint64_t hi_cur = a[j + q4];
         uint64_t hi_nxt = a[j + q4 + 1];
     /*  Might have to special-case s1 == 0,
         which occurs when r % 128 = 127,
@@ -446,7 +445,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
         However, this modified code seems to give
         the same results as the original code.
      */
-        uint64_t hi = (hi_raw >> s1) | ((hi_nxt << 1) << s2);
+        uint64_t hi = (hi_cur >> s1) | ((hi_nxt << 1) << s2);
 
         uint64_t t = lo & c0,  u = lo >> 32;
         uint64_t v = hi & c0,  w = hi >> 32;
@@ -495,9 +494,8 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int s1, s2;
+  int s1, s2, q4, alpha;
   uint64_t c0, c1, c2, c3, c4, c5;
-  int q4, alpha;
 
   c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
   c1 = 0x0000FFFF0000FFFFUL;
@@ -513,16 +511,16 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
   
   for (int j = q4; j >= 0; j--) {
 
-        uint64_t lo      = a[j];
-        uint64_t hi_cur  = a[j + q4];
-        uint64_t hi_next = a[j + q4 + 1];
+        uint64_t lo     = a[j];
+        uint64_t hi_cur = a[j + q4];
+        uint64_t hi_nxt = a[j + q4 + 1];
     /*  Might have to special-case s1 == 0,
         which occurs when r % 128 = 127,
         and presumably set hi = 0 if s1 == 0 ?
         However, this modified code seems to give
         the same results as the original code.
      */
-        uint64_t hi = (hi_cur >> s1) | ((hi_next << 1) << s2);
+        uint64_t hi = (hi_cur >> s1) | ((hi_nxt << 1) << s2);
 
         uint64_t t = lo & c0,  u = lo >> 32;
         uint64_t v = hi & c0,  w = hi >> 32;
@@ -705,7 +703,7 @@ int main(int argc, char *argv[])
   int slow, shigh;
   bool done, found, g, swan;
   
-  printf("\nThis is irred (forked github.com/nclvrps/irred version 0.11)\n");	  /* Date 20260520 */
+  printf("\nThis is irred (forked github.com/nclvrps/irred version 0.12)\n");	  /* Date 20260520 */
   
 #if GNU
   printf("\nCopyright (C) 2003 R. P. Brent.\n");
@@ -920,10 +918,6 @@ int main(int argc, char *argv[])
         a = a1;
         }
 
-      if ((k & 0x7FFFL) == 0) { 	 	/* Avoid timer overflow by */
-        CPUtime += clockd(&cstart, false);	/* calling clockd sometimes */
-        }
-        
 	if (! g) break;  
         }
 
