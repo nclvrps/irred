@@ -272,6 +272,13 @@ struct skip {
 /* Global variables */
 
 int r, q1, sodd;			/* Main parameter is r */
+  int alpha, delta;		/* Could be global */
+  int deltaw, deltaq, deltaqc;	/* ditto */
+  int q11, q4;			/* ditto */
+  uint64_t mask1, mask2;		/* ditto */
+  int q41;
+  int s1_x, s2_x;
+  uint64_t c0, c1, c2, c3, c4, c5;
 
 double CPUtime;				/* For timer */
 clock_t cstart;
@@ -283,6 +290,38 @@ unsigned int clockcalls = 0;			/* Counts calls to clock */
 unsigned int space = 0;				/* Counts bytes allocated by malloc */
 
 /* Routines start here */
+
+void initialize_r_s_globals(void) {
+
+    // these depend only on r
+  alpha = r >> 1;		/* alpha = (r-1)/2 */
+  q1  = r >> WD;			/* q1 > 0 */
+  q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
+  q4 = alpha >> WD;		/* q4 = alpha div WLEN */
+  q41 = (alpha+1) >> WD;			/* q41 = (alpha+1) div WLEN */
+  s1_x = (alpha+1) & WLENM;		/* s1_x = (alpha+1) mod WLEN */
+  s2_x = WLENM - s1_x;			/* In [0, WLEN) */
+
+    // these depend on r and s (sodd = either s or r-s)
+  delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
+  deltaw = delta >> WD;		/* deltaw = delta div WLEN */
+  deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
+  deltaqc = WLEN - deltaq;	/* Special case if deltaq is zero */
+
+  c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
+  c1 = 0x0000FFFF0000FFFFUL;
+  c2 = 0x00FF00FF00FF00FFUL;
+  c3 = 0x0F0F0F0F0F0F0F0FUL;
+  c4 = 0x3333333333333333UL;
+  c5 = 0x2222222222222222UL;
+  
+  mask1 = UINT64_MAX >> (WLENM - ((r-1) & WLENM));
+  				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
+  				   zero bits in high positions */
+  mask2 = (~(uint64_t)1) << (alpha & WLENM);
+  				/* mask2 has (alpha mod WLEN) + 1 zero bits
+  				   in low positions */
+}
 
 double clockd(clock_t *starta, bool first)
 
@@ -329,11 +368,6 @@ void reducer(uint64_t * __restrict__ a, uint64_t * __restrict__ b,
     }
     *prev = newer;
 }
-
-  int alpha, delta;		/* Could be global */
-  int deltaw, deltaq, deltaqc;	/* ditto */
-  int q11, q4;			/* ditto */
-  uint64_t mask1, mask2;		/* ditto */
   
 static void xor_shift_zero(uint64_t * __restrict__ dst,
                             const uint64_t * __restrict__ src,
@@ -407,7 +441,7 @@ void setupx(uint64_t *a)
   a[0] = 2UL;			/* 0...010 represents x */
   }
 
-void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
+void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b)
 
 /* 64-bit version of interleave. Loop index runs up (compare interlvr).
 
@@ -419,33 +453,19 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int s1, s2, q4, alpha;
-  uint64_t c0, c1, c2, c3, c4, c5;
 
-  c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
-  c1 = 0x0000FFFF0000FFFFUL;
-  c2 = 0x00FF00FF00FF00FFUL;
-  c3 = 0x0F0F0F0F0F0F0F0FUL;
-  c4 = 0x3333333333333333UL;
-  c5 = 0x2222222222222222UL;
-
-  alpha = r >> 1;			/* alpha = (r-1)/2 */
-  q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
-  s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
-  s2 = WLENM - s1;			/* In [0, WLEN) */
-  
-  for (int j = 0; j <= q4; j++) {
+  for (int j = 0; j <= q41; j++) {
 
         uint64_t lo     = a[j];
-        uint64_t hi_cur = a[j + q4];
-        uint64_t hi_nxt = a[j + q4 + 1];
-    /*  Might have to special-case s1 == 0,
+        uint64_t hi_cur = a[j + q41];
+        uint64_t hi_nxt = a[j + q41 + 1];
+    /*  Might have to special-case s1_x == 0,
         which occurs when r % 128 = 127,
-        and presumably set hi = 0 if s1 == 0 ?
+        and presumably set hi = 0 if s1_x == 0 ?
         However, this modified code seems to give
         the same results as the original code.
      */
-        uint64_t hi = (hi_cur >> s1) | ((hi_nxt << 1) << s2);
+        uint64_t hi = (hi_cur >> s1_x) | ((hi_nxt << 1) << s2_x);
 
         uint64_t t = lo & c0,  u = lo >> 32;
         uint64_t v = hi & c0,  w = hi >> 32;
@@ -480,7 +500,7 @@ void interlvf(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
     }
   }
   
-void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
+void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b)
 
 /* 64-bit version of interleave. Loop index runs down (compare interlvf).
 
@@ -494,33 +514,19 @@ void interlvr(uint64_t * __restrict__ a, uint64_t * __restrict__ b, int r)
    RPB, 20000907 */
 
   {
-  int s1, s2, q4, alpha;
-  uint64_t c0, c1, c2, c3, c4, c5;
 
-  c0 = 0x00000000FFFFFFFFUL;		/* Some 64-bit constants */
-  c1 = 0x0000FFFF0000FFFFUL;
-  c2 = 0x00FF00FF00FF00FFUL;
-  c3 = 0x0F0F0F0F0F0F0F0FUL;
-  c4 = 0x3333333333333333UL;
-  c5 = 0x2222222222222222UL;
-
-  alpha = r >> 1;			/* alpha = (r-1)/2 */
-  q4 = (alpha+1) >> WD;			/* q4 = (alpha+1) div WLEN */
-  s1 = (alpha+1) & WLENM;		/* s1 = (alpha+1) mod WLEN */
-  s2 = WLENM - s1;			/* In [0, WLEN) */
-  
-  for (int j = q4; j >= 0; j--) {
+  for (int j = q41; j >= 0; j--) {
 
         uint64_t lo     = a[j];
-        uint64_t hi_cur = a[j + q4];
-        uint64_t hi_nxt = a[j + q4 + 1];
-    /*  Might have to special-case s1 == 0,
+        uint64_t hi_cur = a[j + q41];
+        uint64_t hi_nxt = a[j + q41 + 1];
+    /*  Might have to special-case s1_x == 0,
         which occurs when r % 128 = 127,
-        and presumably set hi = 0 if s1 == 0 ?
+        and presumably set hi = 0 if s1_x == 0 ?
         However, this modified code seems to give
         the same results as the original code.
      */
-        uint64_t hi = (hi_cur >> s1) | ((hi_nxt << 1) << s2);
+        uint64_t hi = (hi_cur >> s1_x) | ((hi_nxt << 1) << s2_x);
 
         uint64_t t = lo & c0,  u = lo >> 32;
         uint64_t v = hi & c0,  w = hi >> 32;
@@ -630,11 +636,11 @@ uint64_t *fastmem(int r, int sizeah, double *CPUest)
     for (nkt = 0; CPUtime < CPUTEST; nkt++) {
       reducep(a);		/* Timing run for about CPUTEST seconds */
       if (a == a1) {
-        interlvf(a1, a0, r);		/* Forward interleave */
+        interlvf(a1, a0);		/* Forward interleave */
         a = a0;				/* Adjust pointer to data */
         }
       else {
-        interlvr(a0, a1, r);		/* Reverse interleave */
+        interlvr(a0, a1);		/* Reverse interleave */
         a = a1;
         }
       if ((nkt & 0x7F) == 0)		/* Reduce overhead of clockd calls */
@@ -778,6 +784,9 @@ int main(int argc, char *argv[])
     printf("\nWarning: r = %d is not prime, so irreducibility test", r);
     printf(" is incomplete\n\n");
     }	
+  if (r % 128 == 127) {
+    printf("\n\n**** Warning: r = 127 (mod 128), the reducer code might not work correctly!\n\n");
+    }
     					  /* Searches up from initial s1
     					     to s2-1 (or down to s2+1) */ 
   if (s1 < 0) exit(EXIT_SUCCESS);
@@ -841,9 +850,10 @@ int main(int argc, char *argv[])
     CPUtime1 = 0;			/* CPUtime1 is for current sieving */
     skt++;
 
-    /* Set up variables depending only on r */
+    /* Set up global variables depending only on r, or on r and s */
+    initialize_r_s_globals();
 
-    q1  = r >> WD;			/* q1 > 0 */
+    /* These local variables depend only on r */
 
     sizeah = (q1 >> 1) + 12;		/* r/(2*WLEN) + 4 = half size of
     					   a/b array plus safety margin */
@@ -888,21 +898,6 @@ int main(int argc, char *argv[])
 
       setupx (a);
 
-  alpha = r >> 1;		/* alpha = (r-1)/2 */
-  delta = (r - sodd) >> 1;	/* delta = (r - sodd)/2 */
-  deltaw = delta >> WD;		/* deltaw = delta div WLEN */
-  deltaq = delta & WLENM;	/* deltaq = delta mod WLEN */
-  deltaqc = WLEN - deltaq;	/* Special case if deltaq is zero */
-  q11 = (r-1) >> WD;		/* q11 = (r-1) div WLEN */
-  q4 = alpha >> WD;		/* q4 = alpha div WLEN */
-  
-  mask1 = UINT64_MAX >> (WLENM - ((r-1) & WLENM));
-  				/* mask1 has WLEN-1 - ((r-1) mod WLEN)
-  				   zero bits in high positions */
-  mask2 = (~(uint64_t)1) << (alpha & WLENM);
-  				/* mask2 has (alpha mod WLEN) + 1 zero bits
-  				   in low positions */
-
       for (k = 0; g && (k < r); k++) {
 
       reducep(a);			/* Reduce (square of) a */
@@ -910,11 +905,11 @@ int main(int argc, char *argv[])
       /* Interleave in forward/reverse directions alternately */
 
       if (a == a1) {
-        interlvf(a1, a0, r);		/* Forward interleave */
+        interlvf(a1, a0);		/* Forward interleave */
         a = a0;				/* Adjust pointer to data */
         }
       else {
-        interlvr(a0, a1, r);		/* Reverse interleave */
+        interlvr(a0, a1);		/* Reverse interleave */
         a = a1;
         }
 
