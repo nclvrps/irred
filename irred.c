@@ -230,7 +230,7 @@ References:
 #define CONTINUE false		/* If true, continue after finding a
                                    primitive trinomial (useful for small r) */
 
-#define GNU true		/* Determines if copyright notice is printed
+#define GNU false		/* Determines if copyright notice is printed
 				   (but the program is copyright anyway) */
 
 		     /* With gcc 2.95.2, compile irred.c with
