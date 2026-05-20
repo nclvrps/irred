@@ -592,7 +592,7 @@ bool skips(struct skip *skiplist, int s)
   return false;
   }
 
-uint64_t *fastmem(int r, int sodd, int sizeah, double *CPUest)
+uint64_t *fastmem(int r, int sizeah, double *CPUest)
 
 /* Selects and returns a "good" pointer a0 by performing some timing runs  -
    it is not obvious why this works (perhaps due to real <-> virtual page
@@ -682,19 +682,17 @@ bool prime(int n)
 int main(int argc, char *argv[])
   {
   FILE *fp;
-  double CPUtime1, CPUlast, CPUest;
+  double CPUtime1, CPUest;
   double CPUtotal = 0;
   double CPUtotal1 = 0;
   int minutes = 0;		/* minutes before stopping */
-  int j, k, rv;
+  int k, rv;
   int s = -1;
   int s1 = 0, s2 = 0;
-  int n, sizeah, sizep;
+  int sizeah, sizep;
   int skt = 0;
   uint64_t *a;			/* For polynomial of degree (r-1) */
   uint64_t *a0, *a1;		/* a = a0 or a1 */
-  uint64_t *p, *q;			/* For sieving */
-  uint64_t new;
 
   char line[MC];		/* Line buffer */
   char log[] = " LOG";		/* Identifier for log 
@@ -830,7 +828,6 @@ int main(int argc, char *argv[])
     CPUtotal += CPUtime;		/* CPUtotal is for all (r, s) */
     CPUtime = 0;			/* CPUtime is for current (r, s) */
     CPUtime1 = 0;			/* CPUtime1 is for current sieving */
-    CPUlast = 0;
     skt++;
 
     /* Set up variables depending only on r */
@@ -850,25 +847,19 @@ int main(int argc, char *argv[])
     					   line on IBM PC (added v. 2.71)
     					   (does this help ?) */
 
-    if (a0 == NULL) {	/* Allocate space for a, b, p and q arrays */
+    if (a0 == NULL) {	/* Allocate space for a, b arrays */
 
       CPUtime += clockd(&cstart, false);
       CPUtotal += CPUtime;
       CPUtime = 0;			/* Don't count in non-sieving time */
 
-      a0 = fastmem(r, sodd, sizeah, &CPUest); /* Find a "good" a0 on the heap 
+      a0 = fastmem(r, sizeah, &CPUest); /* Find a "good" a0 on the heap 
       					   	 and estimate CPU time */
       					   	 
       CPUtime += clockd(&cstart, false);/* Count call to fastmem in total */
       CPUtotal += CPUtime;		/* but not in sieving time */
       CPUtime = 0;		
 
-      /* The "+ 4"s were added in version 3.15 to avoid valgrind diagnostics
-         caused by reading p[-1] or q[-1] */
-         
-      p  = (uint64_t *)mymalloc((sizep + 4)*(int)sizeof(uint64_t)) + 4;
-      q  = (uint64_t *)mymalloc((sizep + 4)*(int)sizeof(uint64_t)) + 4;
-      	
       a0 += 2;		/* For optimisation in interlvr, may access a[-1] */	
       			/* See comments in fastmem re version 3.15 change */
       			
@@ -1010,7 +1001,7 @@ int main(int argc, char *argv[])
     fclose(fp);
     }
 
-  if ((! found) && (p != NULL) && (s != -1))
+  if ((! found) && (s != -1))
     printf("Searched to %d\n", s);
 #if VERBOSE
   printf("Working set after sieving about %d bytes\n", (3*r)>>4);
