@@ -665,7 +665,7 @@ uint64_t *fastmem(int sizeah, double *CPUest)
   if (verbose) {
   if (nits > 1)
     printf("Worst/best ratio in fastmem %1.2f\n", CPUworst/CPUbest);
-  printf("Estimated CPU time (not sieving) %2.2f sec = %2.2f r^2 nsec\n\n",
+  printf("Estimated CPU time (not sieving) %2.2f sec = %.3g r^2 nsec\n\n",
   	CPUtime, 1.0e9*CPUtime/r/r);
   fflush(stdout); 	
   }
@@ -711,7 +711,7 @@ int main(int argc, char *argv[])
   int slow, shigh;
   bool done, found, g, swan;
   
-  printf("\nThis is irred (forked github.com/nclvrps/irred version 0.12)\n");	  /* Date 20260520 */
+  printf("\nThis is irred (forked github.com/nclvrps/irred version 0.13)\n");	  /* Date 20260520 */
   
 #if GNU
   printf("\nCopyright (C) 2003 R. P. Brent.\n");
@@ -960,7 +960,7 @@ int main(int argc, char *argv[])
       if (verbose) {
       if (CPUtime > CPUTOL) {  
         printf("CPU time (not sieving) %.2f sec = ", CPUtime);
-        printf("%2.2f r^2 nsec\n", 1.0e9*CPUtime/r/r);
+        printf("%.3g r^2 nsec\n", 1.0e9*CPUtime/r/r);
         }
       if (CPUtime1 > CPUTOL) {
 	printf("CPU time (sieving)     %.2f sec", CPUtime1);
